@@ -1,0 +1,104 @@
+<?php
+use CRM_Cartcheckout_ExtensionUtil as E;
+
+class CRM_Cartcheckout_BAO_Cart extends CRM_Cartcheckout_DAO_Cart {
+
+  /**
+   * Create a new Cart based on array-data
+   *
+   * @param array $params key-value pairs
+   * @return CRM_Cartcheckout_DAO_Cart|NULL
+   *
+   */
+  public static function create($params) {
+    $className  = 'CRM_Cartcheckout_DAO_Cart';
+    $entityName = 'Cart';
+    $hook = empty($params['id']) ? 'create' : 'edit';
+
+    CRM_Utils_Hook::pre($hook, $entityName, CRM_Utils_Array::value('id', $params), $params);
+    $instance = new $className();
+    $instance->copyValues($params);
+    $instance->save();
+    CRM_Utils_Hook::post($hook, $entityName, $instance->id, $instance);
+
+    return $instance;
+  }
+
+  public static function getUserCart() {
+    $session = CRM_Core_Session::singleton();
+    $cartId  = $session->get('cartcheckout_cart_id');
+    $userId  = $session->get('userID');
+    $cart    = FALSE;
+    if ($cartId) {
+      $cart = self::getCart(['id' => $cartId, 'completed' => 0]);
+      if ($cart && $userId) {
+        if (!$cart->user_id) {
+          $savedCart = self::getCart(['id' => $userId, 'completed' => 0]);
+          if ($savedCart) {
+            // just delete for now
+            $savedCart->delete();
+          } else {
+            $cart->user_id = $userId;
+            $cart->save();
+          }
+        }
+      }  
+    }
+    if ($cart === FALSE) {
+      if (empty($userId)) {
+        $cart = self::create([]);
+      }
+      else {
+        $cart = self::getCart(['id' => $userId, 'completed' => 0]);
+        if ($cart === FALSE) {
+          $cart = self::create(['user_id' => $userId]);
+        }
+      }
+      $session->set('cartcheckout_cart_id', $cart->id);
+    }
+    return $cart;
+  }
+
+  /**
+   * @param array $params
+   *
+   * @return bool|CRM_Event_Cart_BAO_Cart
+   */
+  public static function getCart($params) {
+    $cart = new CRM_Cartcheckout_BAO_Cart();
+    $cart->copyValues($params);
+    if ($cart->find(TRUE)) {
+      return $cart;
+    }
+    return FALSE;
+  }
+
+  public function addItem($entityTable, $entityID) {
+    $item = FALSE;
+    if ($this->id && $entityTable && $entityID) {
+      $params = [
+        'cart_id'      => $this->id, 
+        'entity_table' => $entityTable,
+        'entity_id'    => $entityID, 
+      ];
+      $item = CRM_Cartcheckout_BAO_CartItem::create($params);
+    }
+    return $item;
+  }
+
+  public function getItems() {
+    $items = [];
+    if (!empty($this->id)) {
+      $item = new CRM_Cartcheckout_BAO_CartItem();
+      $item->cart_id = $this->id; 
+      $item->find();
+      while ($item->fetch()) {
+        CRM_Core_Error::debug_var('$item', $item);
+        $items[] = clone $item;
+      }
+    }
+    CRM_Core_Error::debug_var('$items', $items);
+    return $items;
+  }
+
+}
