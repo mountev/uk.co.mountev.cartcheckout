@@ -184,27 +184,10 @@ function cartcheckout_civicrm_buildForm($formName, &$form) {
     CRM_Core_Region::instance('page-body')->add([
       'template' => "{$templatePath}/CartButton.tpl"
     ]);
-    CRM_Core_Error::debug_var('buildform $_POST', $_POST);
-    CRM_Core_Error::debug_var('$form->_submitValues', $form->_submitValues);
-    CRM_Core_Error::debug_var('$form->_values', $form->_values);
-    //if (!empty($form->_submitValues['add_to_cartcheckout'])) {
-    //  // cart button was pressed. An opportunity to skip confirm step
-    //  $form->_values['event']['is_confirm_enabled'] = 0;
-    //}
-    //CRM_Core_Error::debug_var('$form->_values2', $form->_values);
-    //
-      //$cart = CRM_Cartcheckout_BAO_Cart::getUserCart();
-      //CRM_Core_Error::debug_var('checkout contri usercart', $cart);
-      //CRM_Core_Error::debug_var('$cart->getItems()', $cart->getItems());
   }
 }
 
 function cartcheckout_civicrm_preProcess($formName, &$form) {
-  if ($formName == 'CRM_Event_Form_Registration_Register') {
-    $params  = $form->get('params');
-    CRM_Core_Error::debug_var('preprocess params check', $params);
-    CRM_Core_Error::debug_var('preprocess $_POST', $_POST);
-  }
   if ($formName == 'CRM_Event_Form_Registration_Confirm') {
     $params  = $form->get('params');
     if (!empty($params[0]['add_to_cartcheckout'])) {
@@ -251,7 +234,6 @@ function cartcheckout_civicrm_postProcess($formName, &$form) {
 //function cartcheckout_civicrm_validateForm($formName, &$fields, &$files, &$form, &$errors) {
 //  if ($formName == 'CRM_Event_Form_Registration_Register') {
 //    $data = &$form->controller->container();
-//    CRM_Core_Error::debug_var('validation data', $data);
 //  }
 //}
 
@@ -275,8 +257,14 @@ function cartcheckout_civicrm_pre($op, $objectName, $objectId, &$objectRef) {
     if ($objectRef['status_id'] == $membershipStatus['Pending'] && 
       $session->get("cartcheckout_{$qfKey}_membership_page_id") == $objectRef['contribution']->contribution_page_id
     ) {
-      $objectRef['status_id'] = $membershipStatus['Pending in cart'];
-      $objectRef['some_new_field'] = 'asd';
+      // NOTE: changing status to a new one like pending in cart (other than pending) causes problems with
+      //       completing or renewals.
+      // Error: it looks like there is no valid membership status corresponding to the membership start 
+      //        and end dates for this membership
+      //
+      //
+      //$objectRef['status_id'] = $membershipStatus['Pending in cart'];
+      //$objectRef['some_new_field'] = 'asd';
       // see if override is needed
       // $objectRef['is_override'] = 1;
     }
@@ -285,17 +273,11 @@ function cartcheckout_civicrm_pre($op, $objectName, $objectId, &$objectRef) {
 
 // CART CHECKOUT PAYMENT
 function cartcheckout_civicrm_post($op, $objectName, $objectId, &$objectRef) {
-  CRM_Core_Error::debug_var('$op', $op);
-  CRM_Core_Error::debug_var('$objectName', $objectName);
-  CRM_Core_Error::debug_var('$objectId', $objectId);
-  CRM_Core_Error::debug_var('$objectRef', $objectRef);
   if ($op == 'create' && $objectName == 'Participant' && $objectId) {
     $session = CRM_Core_Session::singleton();
     $qfKey   = CRM_Utils_Request::retrieve('qfKey', 'String', CRM_Core_DAO::$_nullObject);
-    CRM_Core_Error::debug_var('$qfKey', $qfKey);
     $participantStatus = CRM_Event_PseudoConstant::participantStatus();
     $participantStatus = array_flip($participantStatus);
-    CRM_Core_Error::debug_var('$participantStatus', $participantStatus);
     if ($objectRef->status_id == $participantStatus['Pending in cart'] &&
       $session->get("cartcheckout_{$qfKey}_event_id") == $objectRef->event_id
     ) {
@@ -304,53 +286,78 @@ function cartcheckout_civicrm_post($op, $objectName, $objectId, &$objectRef) {
     } 
   }
   if ($op == 'create' && $objectName == 'Membership' && $objectId) {
-    $session = CRM_Core_Session::singleton();
-    $qfKey   = CRM_Utils_Request::retrieve('qfKey', 'String', CRM_Core_DAO::$_nullObject);
-    $membershipStatus = CRM_Member_PseudoConstant::membershipStatus();
-    $membershipStatus = array_flip($membershipStatus);
-    if ($objectRef->status_id == $membershipStatus['Pending in cart']) {
-      // fixme: a contribution page id check is required, but we don't receive it with $objectRef
-      // && $session->get("cartcheckout_{$qfKey}_membership_page_id") == $objectRef['contribution']->contribution_page_id
-      $cart = CRM_Cartcheckout_BAO_Cart::getUserCart();
-      $cart->addItem('civicrm_membership', $objectId);
+    if (CRM_Core_Transaction::isActive()) {
+      CRM_Core_Transaction::addCallback(CRM_Core_Transaction::PHASE_POST_COMMIT, 'cartcheckout_civicrm_postCallback', [$op, $objectName, $objectId, $objectRef]);
+    }
+    else {
+      cartcheckout_civicrm_postCallback($op, $objectName, $objectId, $objectRef);
     }
   }
   // online contribution first creates pending contribution,which then gets completed 
   // after creating lineitem and financial item. And therefore we use 'edit' as operation.
   if ($op == 'edit' && $objectName == 'Contribution' && $objectId) {
-    // $objectRef may not have enough info because it's edit op. So we fetch again
-    $checkoutContribution = new CRM_Contribute_BAO_Contribution();
-    $checkoutContribution->id = $objectId;
-    $checkoutContribution->find(TRUE);
+    if (CRM_Core_Transaction::isActive()) {
+      CRM_Core_Transaction::addCallback(CRM_Core_Transaction::PHASE_POST_COMMIT, 'cartcheckout_civicrm_postCallback', [$op, $objectName, $objectId, $objectRef]);
+    }
+    else {
+      cartcheckout_civicrm_postCallback($op, $objectName, $objectId, $objectRef);
+    }
+  }
+}
 
-    // fixme: contribution page id to be fetched from settings
-    $contributionStatuses = CRM_Contribute_PseudoConstant::contributionStatus(NULL, 'name');
-    CRM_Core_Error::debug_var('$contributionStatuses', $contributionStatuses);
-    if ($checkoutContribution->contribution_page_id == 4 && 
-      $checkoutContribution->contribution_status_id == array_search('Completed', $contributionStatuses)) {
+function cartcheckout_civicrm_postCallback($op, $objectName, $objectId, $objectRef) {
+  if ($op == 'create' && $objectName == 'Membership' && $objectId) {
+    $session = CRM_Core_Session::singleton();
+    $qfKey   = CRM_Utils_Request::retrieve('qfKey', 'String', CRM_Core_DAO::$_nullObject);
+    $membershipStatus = CRM_Member_PseudoConstant::membershipStatus();
+    $membershipStatus = array_flip($membershipStatus);
+    //if ($objectRef->status_id == $membershipStatus['Pending in cart']) {
+    if ($objectRef->status_id == $membershipStatus['Pending']) {
+      // fixme: a contribution page id check is required, but we don't receive it with $objectRef
+      // && $session->get("cartcheckout_{$qfKey}_membership_page_id") == $objectRef['contribution']->contribution_page_id
       $cart = CRM_Cartcheckout_BAO_Cart::getUserCart();
-      CRM_Core_Error::debug_var('checkout contri usercart', $cart);
-      CRM_Core_Error::debug_var('$cart->getItems()', $cart->getItems());
-      try {
-        foreach ($cart->getItems() as $item) {
-          $itemContribution = $item->getContribution();
-          CRM_Core_Error::debug_var('$itemContribution', $itemContribution);
-          if ($itemContribution && 
-            $itemContribution->contribution_status_id == array_search('Pending', $contributionStatuses)
-          ) {
+      $cart->addItem('civicrm_membership', $objectId);
+
+      //$dates = CRM_Member_BAO_MembershipType::getRenewalDatesForMembershipType($objectId);
+      //$membership = new CRM_Member_BAO_Membership();
+      //$membership->id = $objectId;
+      //if ($membership->find(TRUE)) {
+      //  $membership->join_date = CRM_Utils_Date::isoToMysql($dates['join_date']);
+      //  $membership->start_date = CRM_Utils_Date::isoToMysql($dates['start_date']);
+      //  $membership->end_date = CRM_Utils_Date::isoToMysql($dates['end_date']);
+      //}
+      //$membership->save();
+      //throw new Exception("Could not find membership record: $id");
+    }
+  }
+  if ($op == 'edit' && $objectName == 'Contribution' && $objectId) {
+    // $objectRef may not have enough info because it's edit op. So we fetch again
+    $checkoutContribution = CRM_Contribute_BAO_Contribution::getValues(['id' => $objectId]);
+    $contributionStatuses = CRM_Contribute_PseudoConstant::contributionStatus(NULL, 'name');
+    // fixme: contribution page id to be fetched from settings
+    if ($checkoutContribution && 
+      $checkoutContribution->contribution_page_id == 4 && 
+      $checkoutContribution->contribution_status_id == array_search('Completed', $contributionStatuses)
+    ) {
+      $cart = CRM_Cartcheckout_BAO_Cart::getUserCart();
+      foreach ($cart->getItems() as $item) {
+        $itemContribution = $item->getContribution();
+        if ($itemContribution && 
+          $itemContribution->contribution_status_id == array_search('Pending', $contributionStatuses)
+        ) {
+          try {
             $result = civicrm_api3('Payment', 'create', [
               'contribution_id' => $itemContribution->id,//linked pending payment
               'total_amount'    => $itemContribution->total_amount,
               'payment_instrument_id' => 'Cart Payment',
             ]);
-            CRM_Core_Error::debug_var('$result', $result);
+          }
+          catch (Exception $e) {
+            \Civi::log()->debug('CartPayment error creating payments: ' . $e->getMessage());
           }
         }
       }
-      catch (Exception $e) {
-        \Civi::log()->debug('CartPayment error creating payments: ' . $e->getMessage());
-        CRM_Core_Error::debug_var('$e', $e);
-      }
+      $completedCart = $cart->setCompleted();
     }
   }
 }

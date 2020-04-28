@@ -11,7 +11,7 @@ class CRM_Cartcheckout_BAO_Cart extends CRM_Cartcheckout_DAO_Cart {
    *
    */
   public static function create($params) {
-    $className  = 'CRM_Cartcheckout_DAO_Cart';
+    $className  = 'CRM_Cartcheckout_BAO_Cart';
     $entityName = 'Cart';
     $hook = empty($params['id']) ? 'create' : 'edit';
 
@@ -24,16 +24,22 @@ class CRM_Cartcheckout_BAO_Cart extends CRM_Cartcheckout_DAO_Cart {
     return $instance;
   }
 
+  public function setCompleted() {
+    if (!empty($this->id)) {
+      return self::create(['id' => $this->id, 'is_completed' => 1]);
+    }
+  }
+
   public static function getUserCart() {
     $session = CRM_Core_Session::singleton();
     $cartId  = $session->get('cartcheckout_cart_id');
     $userId  = $session->get('userID');
     $cart    = FALSE;
     if ($cartId) {
-      $cart = self::getCart(['id' => $cartId, 'completed' => 0]);
+      $cart = self::getCart(['id' => $cartId, 'is_completed' => 0]);
       if ($cart && $userId) {
         if (!$cart->user_id) {
-          $savedCart = self::getCart(['id' => $userId, 'completed' => 0]);
+          $savedCart = self::getCart(['id' => $userId, 'is_completed' => 0]);
           if ($savedCart) {
             // just delete for now
             $savedCart->delete();
@@ -49,7 +55,7 @@ class CRM_Cartcheckout_BAO_Cart extends CRM_Cartcheckout_DAO_Cart {
         $cart = self::create([]);
       }
       else {
-        $cart = self::getCart(['id' => $userId, 'completed' => 0]);
+        $cart = self::getCart(['id' => $userId, 'is_completed' => 0]);
         if ($cart === FALSE) {
           $cart = self::create(['user_id' => $userId]);
         }
@@ -93,11 +99,9 @@ class CRM_Cartcheckout_BAO_Cart extends CRM_Cartcheckout_DAO_Cart {
       $item->cart_id = $this->id; 
       $item->find();
       while ($item->fetch()) {
-        CRM_Core_Error::debug_var('$item', $item);
         $items[] = clone $item;
       }
     }
-    CRM_Core_Error::debug_var('$items', $items);
     return $items;
   }
 
