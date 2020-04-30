@@ -221,12 +221,19 @@ function cartcheckout_civicrm_postProcess($formName, &$form) {
     }
   }
   if ($formName == 'CRM_Contribute_Form_Contribution_Main') {
-    $session = CRM_Core_Session::singleton();
-    $params  = $form->_params;
-    $session->set("cartcheckout_{$qfKey}_membership_page_id", 0);
-    if (!empty($params['add_to_cartcheckout'])) {
-      $qfKey   = $params['qfKey'];
-      $session->set("cartcheckout_{$qfKey}_membership_page_id", $form->_id);
+    $params = $form->_params;
+    if ($form->_id == 4) { // fixme: use settings
+      // for checkout payment
+      $cart = CRM_Cartcheckout_BAO_Cart::getUserCart();
+      $cart->checkoutItems($params);
+    } else if (!empty($params['selectMembership'])) {
+      // for membership pages
+      $session = CRM_Core_Session::singleton();
+      // reset the flag first
+      $session->set("cartcheckout_{$qfKey}_membership_page_id", 0);
+      if (!empty($params['add_to_cartcheckout'])) {
+        $session->set("cartcheckout_{$params['qfKey']}_membership_page_id", $form->_id);
+      }
     }
   }
 }
@@ -340,41 +347,51 @@ function cartcheckout_civicrm_postCallback($op, $objectName, $objectId, $objectR
       $checkoutContribution->contribution_status_id == array_search('Completed', $contributionStatuses)
     ) {
       $cart = CRM_Cartcheckout_BAO_Cart::getUserCart();
-      foreach ($cart->getItems() as $item) {
-        $itemContribution = $item->getContribution();
-        if ($itemContribution && 
-          $itemContribution->contribution_status_id == array_search('Pending', $contributionStatuses)
-        ) {
-          try {
-            $result = civicrm_api3('Payment', 'create', [
-              'contribution_id' => $itemContribution->id,//linked pending payment
-              'total_amount'    => $itemContribution->total_amount,
-              'payment_instrument_id' => 'Cart Payment',
-            ]);
-          }
-          catch (Exception $e) {
-            \Civi::log()->debug('CartPayment error creating payments: ' . $e->getMessage());
+      if (empty($cart->is_completed)) { // not already completed
+        foreach ($cart->getCheckedOutItems() as $item) {
+          $itemContribution = $item->getContribution();
+          if ($itemContribution && 
+            $itemContribution->contribution_status_id == array_search('Pending', $contributionStatuses)
+          ) {
+            try {
+              $result = civicrm_api3('Payment', 'create', [
+                'contribution_id' => $itemContribution->id,//linked pending payment
+                'total_amount'    => $itemContribution->total_amount,
+                'payment_instrument_id' => 'Cart Payment',
+              ]);
+            }
+            catch (Exception $e) {
+              \Civi::log()->debug('CartPayment error creating payments: ' . $e->getMessage());
+            }
           }
         }
+        $completedCart = $cart->setCompleted($checkoutContribution->id);
       }
-      $completedCart = $cart->setCompleted();
     }
   }
 }
 
 function cartcheckout_civicrm_buildAmount($pageType, &$form, &$amount) {
-  $feeBlock = &$amount;
-  foreach ($feeBlock as &$fee) {
-    if (!is_array($fee['options'])) {
-      continue;
-    }
-    foreach ($fee['options'] as &$option) {
-      // We only have one amount for each membership, so this code may be overkill,
-      // as it checks every option displayed (and there is only one).
-      if ($option['amount'] > 0) {
-        // Only pro-rata paid memberships!
-        $option['label'] .= ' - Pro-rata: Dec only - label changed2';
-        $option['amount'] += 10.00;
+  // fixme: use settings for id 4
+  if (CRM_Utils_System::getClassName($form) == 'CRM_Contribute_Form_Contribution_Main' && 
+    $form->_id == 4
+  ) {
+    // fixme: form preprocess might be a better place to trigger linking
+    $items = CRM_Cartcheckout_BAO_Cart::getUserCart()->linkItemsToPriceSetFields();
+    $feeBlock = &$amount;
+    foreach ($feeBlock as $pfId => &$fee) {
+      if ($fee['name'] == 'cart_items' && is_array($fee['options'])) {
+        foreach ($fee['options'] as $opId => &$option) {
+          if (array_key_exists($opId, $items)) {
+            $items[$opId]->getLabelAndAmount();
+            $option['label']  = $items[$opId]->label;
+            $option['amount'] = $items[$opId]->amount;
+          } else {
+            unset($fee['options'][$opId]);
+          }
+        }
+      } else {
+        unset($feeBlock[$pfId]);
       }
     }
   }

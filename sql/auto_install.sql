@@ -50,12 +50,13 @@ CREATE TABLE `civicrm_cart` (
 
      `id` int unsigned NOT NULL AUTO_INCREMENT  COMMENT 'Unique Cart ID',
      `user_id` int unsigned    COMMENT 'FK to Contact',
-     `is_completed` tinyint   DEFAULT 0  
+     `is_completed` tinyint   DEFAULT 0 ,
+     `payment_id` int unsigned    COMMENT 'FK to checked out Contribution' 
 ,
         PRIMARY KEY (`id`)
  
  
-,          CONSTRAINT FK_civicrm_cart_user_id FOREIGN KEY (`user_id`) REFERENCES `civicrm_contact`(`id`) ON DELETE CASCADE  
+,          CONSTRAINT FK_civicrm_cart_user_id FOREIGN KEY (`user_id`) REFERENCES `civicrm_contact`(`id`) ON DELETE CASCADE,          CONSTRAINT FK_civicrm_cart_payment_id FOREIGN KEY (`payment_id`) REFERENCES `civicrm_contribution`(`id`) ON DELETE SET NULL  
 )    ;
 
 -- /*******************************************************
@@ -67,14 +68,16 @@ CREATE TABLE `civicrm_cart_item` (
 
 
      `id` int unsigned NOT NULL AUTO_INCREMENT  COMMENT 'Unique CartItem ID',
-     `cart_id` int unsigned    COMMENT 'FK to Contact',
+     `cart_id` int unsigned NOT NULL   COMMENT 'FK to Cart',
      `entity_table` varchar(64) NOT NULL   ,
-     `entity_id` int unsigned NOT NULL    
+     `entity_id` int unsigned NOT NULL   ,
+     `pfv_id` int unsigned    COMMENT 'FK to civicrm_price_field_value Table',
+     `is_checkedout` tinyint   DEFAULT 0 COMMENT 'Whether the item was included in final checkout' 
 ,
         PRIMARY KEY (`id`)
  
  
-,          CONSTRAINT FK_civicrm_cart_item_cart_id FOREIGN KEY (`cart_id`) REFERENCES `civicrm_cart`(`id`) ON DELETE CASCADE  
+,          CONSTRAINT FK_civicrm_cart_item_cart_id FOREIGN KEY (`cart_id`) REFERENCES `civicrm_cart`(`id`) ON DELETE CASCADE,          CONSTRAINT FK_civicrm_cart_item_pfv_id FOREIGN KEY (`pfv_id`) REFERENCES `civicrm_price_field_value`(`id`) ON DELETE SET NULL  
 )    ;
 
  

@@ -42,4 +42,24 @@
     <type>int unsigned</type>
     <required>true</required>
   </field>
+
+  <field>
+    <name>pfv_id</name>
+    <type>int unsigned</type>
+    <comment>FK to civicrm_price_field_value Table</comment>
+  </field>
+  <foreignKey>
+    <name>pfv_id</name>
+    <table>civicrm_price_field_value</table>
+    <key>id</key>
+    <onDelete>SET NULL</onDelete>
+  </foreignKey>
+
+  <field>
+    <name>is_checkedout</name>
+    <title>Is Checked Out?</title>
+    <comment>Whether the item was included in final checkout</comment>
+    <type>boolean</type>
+    <default>0</default>
+  </field>
 </table>

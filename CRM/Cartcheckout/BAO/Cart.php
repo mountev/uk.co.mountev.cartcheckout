@@ -24,9 +24,13 @@ class CRM_Cartcheckout_BAO_Cart extends CRM_Cartcheckout_DAO_Cart {
     return $instance;
   }
 
-  public function setCompleted() {
+  public function setCompleted($paymentId = NULL) {
     if (!empty($this->id)) {
-      return self::create(['id' => $this->id, 'is_completed' => 1]);
+      $params = ['id' => $this->id, 'is_completed' => 1];
+      if ($paymentId) {
+        $params['payment_id'] = $paymentId;
+      }
+      return self::create($params);
     }
   }
 
@@ -92,10 +96,11 @@ class CRM_Cartcheckout_BAO_Cart extends CRM_Cartcheckout_DAO_Cart {
     return $item;
   }
 
-  public function getItems() {
+  public function getItems($params = []) {
     $items = [];
     if (!empty($this->id)) {
       $item = new CRM_Cartcheckout_BAO_CartItem();
+      $item->copyValues($params);
       $item->cart_id = $this->id; 
       $item->find();
       while ($item->fetch()) {
@@ -103,6 +108,44 @@ class CRM_Cartcheckout_BAO_Cart extends CRM_Cartcheckout_DAO_Cart {
       }
     }
     return $items;
+  }
+
+  public function getCheckedOutItems() {
+    return $this->getItems(['is_checkedout' => 1]);
+  }
+
+  public function linkItemsToPriceSetFields() {
+    $num = 0;
+    $priceSet = CRM_Cartcheckout_BAO_CartItem::getCartPriceSet();
+    $feeBlock = $priceSet['fields'];
+    $items    = $this->getItems();
+    $linkedItems = [];
+    foreach ($feeBlock as $pfId => &$fee) {
+      if ($fee['name'] == 'cart_items' && is_array($fee['options'])) {
+        foreach ($fee['options'] as $opId => &$option) {
+          if (array_key_exists($num, $items)) {
+            $items[$num]->setPriceFieldValueId($opId);
+            $linkedItems[$opId] = $items[$num];
+            $num++;
+          }
+        }
+      }
+    }
+    return $linkedItems;
+  }
+
+  public function checkoutItems($params) {
+    $checkedOut = FALSE;
+    $pfId = CRM_Core_DAO::getFieldValue('CRM_Price_DAO_PriceField', 'cart_items', 'id', 'name');
+    if (!empty($params["price_$pfId"])) {
+      foreach ($this->getItems() as $item) {
+        if ($item->pfv_id && CRM_Utils_Array::value($item->pfv_id, $params["price_$pfId"]) == 1) {
+          $item->checkout();
+          $checkedOut = TRUE;
+        }
+      }
+    }
+    return $checkedOut;
   }
 
 }
