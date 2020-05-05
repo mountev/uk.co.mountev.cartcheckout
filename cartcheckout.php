@@ -156,18 +156,18 @@ function cartcheckout_civicrm_preProcess($formName, &$form) {
  * Implements hook_civicrm_navigationMenu().
  *
  * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_navigationMenu
- *
+ */
 function cartcheckout_civicrm_navigationMenu(&$menu) {
-  _cartcheckout_civix_insert_navigation_menu($menu, 'Mailings', array(
-    'label' => E::ts('New subliminal message'),
-    'name' => 'mailing_subliminal_message',
-    'url' => 'civicrm/mailing/subliminal',
-    'permission' => 'access CiviMail',
-    'operator' => 'OR',
+  _cartcheckout_civix_insert_navigation_menu($menu, 'Administer/System Settings', [
+    'label' => E::ts('Cart Checkout'),
+    'name' => 'cart_checkout',
+    'url' => CRM_Utils_System::url('civicrm/admin/setting/cart-checkout', 'reset=1'),
+    'permission' => 'administer CiviCRM',
+    //'operator' => 'OR',
     'separator' => 0,
-  ));
+  ]);
   _cartcheckout_civix_navigationMenu($menu);
-} // */
+}
 
 /**
  * Implements hook_civicrm_buildForm().
@@ -175,27 +175,32 @@ function cartcheckout_civicrm_navigationMenu(&$menu) {
  * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_tokenValues
  */
 function cartcheckout_civicrm_buildForm($formName, &$form) {
-  if (in_array($formName, ['CRM_Event_Form_Registration_Register', 'CRM_Contribute_Form_Contribution_Main'])) {
+  $eventIds = Civi::settings()->get('cartcheckout_addtocart_event_id');
+  $pageIds = Civi::settings()->get('cartcheckout_addtocart_page_id');
+  if (($formName == 'CRM_Event_Form_Registration_Register' && in_array($form->_eventId, $eventIds)) ||
+    ($formName == 'CRM_Contribute_Form_Contribution_Main' && in_array($form->_id, $pageIds))
+  ) {
     $form->add('hidden', 'add_to_cartcheckout', '');
     // Assumes templates are in a templates folder relative to this file
     $templatePath = realpath(dirname(__FILE__)."/templates");
     // dynamically insert a template block in the page
     // fixme: tpl path might need adjustments
     CRM_Core_Region::instance('page-body')->add([
-      'template' => "{$templatePath}/CartButton.tpl"
+      'template' => "{$templatePath}/AddToCartOption.tpl"
     ]);
   }
 }
 
 function cartcheckout_civicrm_preProcess($formName, &$form) {
   if ($formName == 'CRM_Event_Form_Registration_Confirm') {
-    $params  = $form->get('params');
+    $params = $form->get('params');
     if (!empty($params[0]['add_to_cartcheckout'])) {
+      // disable receipts
       $form->_values['event']['is_email_confirm'] = 0;
     }
   }
   if ($formName == 'CRM_Contribute_Form_Contribution_Confirm') {
-    $params  = $form->_params;
+    $params = $form->_params;
     if (!empty($params['add_to_cartcheckout'])) {
       // suppress notificaton
       $form->_values['is_email_receipt'] = 0;
@@ -213,7 +218,7 @@ function cartcheckout_civicrm_postProcess($formName, &$form) {
   if ($formName == 'CRM_Event_Form_Registration_Register') {
     $session = CRM_Core_Session::singleton();
     $params  = $form->get('params');
-    // always unset the session var, so previous session vars doesn't cause any problems
+    // always unset the session var, so previous session var doesn't cause any problems
     $session->set("cartcheckout_{$params[0]['qfKey']}_event_id", 0);
     if (!empty($params[0]['add_to_cartcheckout'])) {
       $session->set("cartcheckout_{$params[0]['qfKey']}_event_id", $form->_eventId);
@@ -222,7 +227,7 @@ function cartcheckout_civicrm_postProcess($formName, &$form) {
   }
   if ($formName == 'CRM_Contribute_Form_Contribution_Main') {
     $params = $form->_params;
-    if ($form->_id == 4) { // fixme: use settings
+    if ($form->_id == Civi::settings()->get('cartcheckout_page_id')) {
       // for checkout payment
       $cart = CRM_Cartcheckout_BAO_Cart::getUserCart();
       $cart->checkoutItems($params);
@@ -341,9 +346,8 @@ function cartcheckout_civicrm_postCallback($op, $objectName, $objectId, $objectR
     // $objectRef may not have enough info because it's edit op. So we fetch again
     $checkoutContribution = CRM_Contribute_BAO_Contribution::getValues(['id' => $objectId]);
     $contributionStatuses = CRM_Contribute_PseudoConstant::contributionStatus(NULL, 'name');
-    // fixme: contribution page id to be fetched from settings
     if ($checkoutContribution && 
-      $checkoutContribution->contribution_page_id == 4 && 
+      $checkoutContribution->contribution_page_id == Civi::settings()->get('cartcheckout_page_id') && 
       $checkoutContribution->contribution_status_id == array_search('Completed', $contributionStatuses)
     ) {
       $cart = CRM_Cartcheckout_BAO_Cart::getUserCart();
@@ -372,9 +376,8 @@ function cartcheckout_civicrm_postCallback($op, $objectName, $objectId, $objectR
 }
 
 function cartcheckout_civicrm_buildAmount($pageType, &$form, &$amount) {
-  // fixme: use settings for id 4
   if (CRM_Utils_System::getClassName($form) == 'CRM_Contribute_Form_Contribution_Main' && 
-    $form->_id == 4
+    $form->_id == Civi::settings()->get('cartcheckout_page_id')
   ) {
     // fixme: form preprocess might be a better place to trigger linking
     $items = CRM_Cartcheckout_BAO_Cart::getUserCart()->linkItemsToPriceSetFields();

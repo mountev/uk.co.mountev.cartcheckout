@@ -47,7 +47,7 @@ class CRM_Cartcheckout_BAO_CartItem extends CRM_Cartcheckout_DAO_CartItem {
   public static function getCartPriceSet() {
     $priceSetEntity = new CRM_Price_DAO_PriceSetEntity();
     $priceSetEntity->entity_table = 'civicrm_contribution_page';
-    $priceSetEntity->entity_id = 4; //fixme: use settings
+    $priceSetEntity->entity_id = Civi::settings()->get('cartcheckout_page_id');
     $priceSetEntity->find(TRUE);
 
     $priceSet = CRM_Price_BAO_PriceSet::getSetDetail($priceSetEntity->price_set_id);
