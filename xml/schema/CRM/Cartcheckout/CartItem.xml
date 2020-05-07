@@ -30,17 +30,29 @@
   </foreignKey>
 
   <field>
+    <name>label</name>
+    <title>Item Label</title>
+    <type>varchar</type>
+    <length>255</length>
+    <required>true</required>
+  </field>
+
+  <field>
+    <name>amount</name>
+    <type>decimal</type>
+    <length>20,2</length>
+  </field>
+
+  <field>
     <name>entity_table</name>
     <title>Entity Table</title>
     <type>varchar</type>
     <length>64</length>
-    <required>true</required>
   </field>
   <field>
     <name>entity_id</name>
     <title>Entity ID</title>
     <type>int unsigned</type>
-    <required>true</required>
   </field>
 
   <field>

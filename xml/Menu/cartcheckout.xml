@@ -6,4 +6,8 @@
     <title>Cart Checkout Settings</title>
     <access_arguments>administer CiviCRM</access_arguments>
   </item>
+  <item>
+    <path>civicrm/cartcheckout/item/add</path>
+    <page_callback>CRM_Cartcheckout_Utils::addCartItem</page_callback>
+  </item>
 </menu>

@@ -69,8 +69,10 @@ CREATE TABLE `civicrm_cart_item` (
 
      `id` int unsigned NOT NULL AUTO_INCREMENT  COMMENT 'Unique CartItem ID',
      `cart_id` int unsigned NOT NULL   COMMENT 'FK to Cart',
-     `entity_table` varchar(64) NOT NULL   ,
-     `entity_id` int unsigned NOT NULL   ,
+     `label` varchar(255) NOT NULL   ,
+     `amount` decimal(20,2)    ,
+     `entity_table` varchar(64)    ,
+     `entity_id` int unsigned    ,
      `pfv_id` int unsigned    COMMENT 'FK to civicrm_price_field_value Table',
      `is_checkedout` tinyint   DEFAULT 0 COMMENT 'Whether the item was included in final checkout' 
 ,

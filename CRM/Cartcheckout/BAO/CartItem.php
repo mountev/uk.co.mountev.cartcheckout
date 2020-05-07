@@ -2,8 +2,6 @@
 use CRM_Cartcheckout_ExtensionUtil as E;
 
 class CRM_Cartcheckout_BAO_CartItem extends CRM_Cartcheckout_DAO_CartItem {
-  public $label  = 'Unknown';
-  public $amount = 10000000;// some high number
 
   /**
    * Create a new CartItem based on array-data
@@ -12,7 +10,6 @@ class CRM_Cartcheckout_BAO_CartItem extends CRM_Cartcheckout_DAO_CartItem {
    * @return CRM_Cartcheckout_DAO_CartItem|NULL
    */
   public static function create($params) {
-    CRM_Core_Error::debug_var('item create params', $params);
     $className = 'CRM_Cartcheckout_DAO_CartItem';
     $entityName = 'CartItem';
     $hook = empty($params['id']) ? 'create' : 'edit';
@@ -81,6 +78,7 @@ class CRM_Cartcheckout_BAO_CartItem extends CRM_Cartcheckout_DAO_CartItem {
       return FALSE;
     }
     $labels = [];
+    // fixme: if label exists in DB, return that
     if ($this->entity_table == 'civicrm_participant') {
       $labels[] = ts('Event');
     } else if ($this->entity_table == 'civicrm_membership') {
@@ -95,6 +93,14 @@ class CRM_Cartcheckout_BAO_CartItem extends CRM_Cartcheckout_DAO_CartItem {
       $this->amount = CRM_Core_DAO::getFieldValue('CRM_Contribute_BAO_Contribution', $contributionId, 'total_amount');
     }
     $this->label  = implode(' - ', $labels);
+
+    if (!empty($this->id)) {
+      $dao = self::create([
+        'id'     => $this->id, 
+        'label'  => $this->label, 
+        'amount' => $this->amount
+      ]);
+    }
 
     return TRUE;
   }

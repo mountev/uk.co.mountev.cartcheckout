@@ -1,5 +1,6 @@
 <?php
 use CRM_Cartcheckout_ExtensionUtil as E;
+use CRM_Cartcheckout_Utils as U;
 
 class CRM_Cartcheckout_BAO_Cart extends CRM_Cartcheckout_DAO_Cart {
 
@@ -72,7 +73,7 @@ class CRM_Cartcheckout_BAO_Cart extends CRM_Cartcheckout_DAO_Cart {
   /**
    * @param array $params
    *
-   * @return bool|CRM_Event_Cart_BAO_Cart
+   * @return  bool|CRM_Event_Cart_BAO_Cart
    */
   public static function getCart($params) {
     $cart = new CRM_Cartcheckout_BAO_Cart();
@@ -90,8 +91,24 @@ class CRM_Cartcheckout_BAO_Cart extends CRM_Cartcheckout_DAO_Cart {
         'cart_id'      => $this->id, 
         'entity_table' => $entityTable,
         'entity_id'    => $entityID, 
+        'label'        => "{$entityTable}_{$entityID}",
       ];
       $item = CRM_Cartcheckout_BAO_CartItem::create($params);
+      $this->addPriceFieldItem();
+    }
+    return $item;
+  }
+
+  public function addLabelItem($label, $amount) {
+    $item = FALSE;
+    if ($this->id && $label && $amount) {
+      $params = [
+        'cart_id' => $this->id, 
+        'label'   => $label,
+        'amount'  => $amount,
+      ];
+      $item = CRM_Cartcheckout_BAO_CartItem::create($params);
+      $this->addPriceFieldItem();
     }
     return $item;
   }
@@ -114,6 +131,24 @@ class CRM_Cartcheckout_BAO_Cart extends CRM_Cartcheckout_DAO_Cart {
     return $this->getItems(['is_checkedout' => 1]);
   }
 
+  public function addPriceFieldItem() {
+    $priceSet = CRM_Cartcheckout_BAO_CartItem::getCartPriceSet();
+    $feeBlock = $priceSet['fields'];
+    $items    = $this->getItems();
+    foreach ($feeBlock as $pfId => &$fee) {
+      if ($fee['name'] == 'cart_items' && is_array($fee['options'])) {
+        if (count($fee['options']) < count($items)) {
+          $optionCount = count($fee['options']);
+          while ($optionCount < count($items)) {
+            $label  = $items[$optionCount]->label;
+            $amount = $items[$optionCount]->amount ? $items[$optionCount]->amount : 100;
+            $pfi = U::addPriceFieldItem($label, $amount);
+            $optionCount++;
+          }
+        }
+      }
+    }
+  }
   public function linkItemsToPriceSetFields() {
     $num = 0;
     $priceSet = CRM_Cartcheckout_BAO_CartItem::getCartPriceSet();
