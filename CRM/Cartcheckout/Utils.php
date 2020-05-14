@@ -18,17 +18,34 @@ class CRM_Cartcheckout_Utils {
   }
 
   public static function addCartItem() {
+    $item   = FALSE; 
     $result = ['is_added' => FALSE];
-    $label  = CRM_Utils_Request::retrieve('label', 'String');
-    $amount = CRM_Utils_Request::retrieve('amount', 'Money');
+    $type   = CRM_Utils_Request::retrieve('type', 'String');
+    $pnum   = CRM_Utils_Request::retrieve('pnum', 'String');
     // fixme: we 'll need to limit the number of additions. A count lookup may be required
     // before adding a new one. 
-    if ($amount > 0) {
-      $cart = CRM_Cartcheckout_BAO_Cart::getUserCart();
-      $item = $cart->addLabelItem($label, $amount);
-      if ($item) {
-        $result = ['is_added' => TRUE];
+    if ($type == 'paper') {
+      if ($pnum) {
+        $sql = "SELECT id, filename FROM civicrm_custom_pdfpapers WHERE paper_number = %1";
+        $paper = CRM_Core_DAO::executeQuery($sql, [1 => [$pnum, 'String']]);
+        $paper->fetch();
+        if ($paper->id && $paper->filename) {
+          $cart = CRM_Cartcheckout_BAO_Cart::getUserCart();
+          // fixme: add amount section to paper table
+          $item = $cart->addLabelItem(ts('Paper') . " - {$paper->filename}", (!empty($paper->amount) ? $paper->amount : 4.00));
+          $item->setEntity('civicrm_custom_pdfpapers', $paper->id);
+        }
       }
+    } else if ($amount > 0) {
+      // general item add. 
+      // $label  = CRM_Utils_Request::retrieve('label', 'String');
+      // $amount = CRM_Utils_Request::retrieve('amount', 'Money');
+      // $cart = CRM_Cartcheckout_BAO_Cart::getUserCart();
+      // $item = $cart->addLabelItem($label, $amount);
+    }
+    if ($item) {
+      CRM_Utils_System::redirect(CRM_Utils_System::url('civicrm/contribute/transact', "reset=1&id=" . Civi::settings()->get('cartcheckout_page_id')));
+      //$result = ['is_added' => TRUE];
     }
     CRM_Utils_JSON::output($result);
   }

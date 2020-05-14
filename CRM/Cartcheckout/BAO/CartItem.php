@@ -10,12 +10,16 @@ class CRM_Cartcheckout_BAO_CartItem extends CRM_Cartcheckout_DAO_CartItem {
    * @return CRM_Cartcheckout_DAO_CartItem|NULL
    */
   public static function create($params) {
-    $className = 'CRM_Cartcheckout_DAO_CartItem';
+    $className = 'CRM_Cartcheckout_BAO_CartItem';
     $entityName = 'CartItem';
     $hook = empty($params['id']) ? 'create' : 'edit';
 
     CRM_Utils_Hook::pre($hook, $entityName, CRM_Utils_Array::value('id', $params), $params);
     $instance = new $className();
+    if (CRM_Utils_Array::value('id', $params)) {
+      $instance->id = $params['id'];
+      $instance->find(TRUE);
+    }
     $instance->copyValues($params);
     $instance->save();
     CRM_Utils_Hook::post($hook, $entityName, $instance->id, $instance);
@@ -77,6 +81,9 @@ class CRM_Cartcheckout_BAO_CartItem extends CRM_Cartcheckout_DAO_CartItem {
   }
 
   public function getLabelAndAmount() {
+    if ($this->label && $this->amount) {
+      return TRUE;
+    }
     if (empty($this->entity_table) || empty($this->entity_id)) {
       return FALSE;
     }
@@ -88,7 +95,6 @@ class CRM_Cartcheckout_BAO_CartItem extends CRM_Cartcheckout_DAO_CartItem {
       $labels[] = ts('Membership');
     }
     $lineItems = CRM_Price_BAO_LineItem::getLineItems($this->entity_id, substr($this->entity_table, 8));
-    CRM_Core_Error::debug_var('$lineItems', $lineItems);
     foreach ($lineItems as $line) {
       if ($this->contribution_id && ($this->contribution_id != $line['contribution_id'])) {
         continue;
@@ -110,5 +116,22 @@ class CRM_Cartcheckout_BAO_CartItem extends CRM_Cartcheckout_DAO_CartItem {
     }
 
     return TRUE;
+  }
+
+  public function setEntity($entityTable, $entityID, $contributionID = NULL) {
+    if ($this->id && $entityTable && $entityID) {
+      $params = [
+        'id'           => $this->id, 
+        'entity_table' => $entityTable,
+        'entity_id'    => $entityID, 
+        'contribution_id' => $contributionID, 
+      ];
+      $item = CRM_Cartcheckout_BAO_CartItem::create($params);
+      $this->entity_table = $item->entity_table;
+      $this->entity_id = $item->entity_id;
+      $this->contribution_id = $item->contribution_id;
+      return TRUE;
+    }
+    return FALSE;
   }
 }
