@@ -24,6 +24,9 @@ class CRM_Cartcheckout_BAO_CartItem extends CRM_Cartcheckout_DAO_CartItem {
   }
 
   public function getContribution() {
+    if (!empty($this->contribution_id)) {
+      return CRM_Contribute_BAO_Contribution::getValues(['id' => $this->contribution_id]);
+    }
     if (empty($this->entity_table) || empty($this->entity_id)) {
       return FALSE;
     }
@@ -85,7 +88,11 @@ class CRM_Cartcheckout_BAO_CartItem extends CRM_Cartcheckout_DAO_CartItem {
       $labels[] = ts('Membership');
     }
     $lineItems = CRM_Price_BAO_LineItem::getLineItems($this->entity_id, substr($this->entity_table, 8));
+    CRM_Core_Error::debug_var('$lineItems', $lineItems);
     foreach ($lineItems as $line) {
+      if ($this->contribution_id && ($this->contribution_id != $line['contribution_id'])) {
+        continue;
+      }
       $labels[] = $line['label'];
       $contributionId = $line['contribution_id'];
     }

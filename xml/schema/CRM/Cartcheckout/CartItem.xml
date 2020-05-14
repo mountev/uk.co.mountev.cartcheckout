@@ -56,6 +56,12 @@
   </field>
 
   <field>
+    <name>contribution_id</name>
+    <type>int unsigned</type>
+    <comment>Old payment ID that was attached to entity</comment>
+  </field>
+
+  <field>
     <name>pfv_id</name>
     <type>int unsigned</type>
     <comment>FK to civicrm_price_field_value Table</comment>

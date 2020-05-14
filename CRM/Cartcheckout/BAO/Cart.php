@@ -35,7 +35,7 @@ class CRM_Cartcheckout_BAO_Cart extends CRM_Cartcheckout_DAO_Cart {
     }
   }
 
-  public static function getUserCart() {
+  public static function getUserCart($doNotCreate = FALSE) {
     $session = CRM_Core_Session::singleton();
     $cartId  = $session->get('cartcheckout_cart_id');
     $userId  = $session->get('userID');
@@ -55,7 +55,7 @@ class CRM_Cartcheckout_BAO_Cart extends CRM_Cartcheckout_DAO_Cart {
         }
       }  
     }
-    if ($cart === FALSE) {
+    if ($cart === FALSE && !$doNotCreate) {
       if (empty($userId)) {
         $cart = self::create([]);
       }
@@ -84,17 +84,24 @@ class CRM_Cartcheckout_BAO_Cart extends CRM_Cartcheckout_DAO_Cart {
     return FALSE;
   }
 
-  public function addItem($entityTable, $entityID) {
+  public function addItem($entityTable, $entityID, $contributionID = NULL) {
+    $cacheKey = "{$this->id}_{$entityTable}_{$entityID}_{$contributionID}";
+    if (!empty(Civi::$statics[__CLASS__][__FUNCTION__][$cacheKey])) {
+      return Civi::$statics[__CLASS__][__FUNCTION__][$cacheKey];
+    }
+
     $item = FALSE;
     if ($this->id && $entityTable && $entityID) {
       $params = [
         'cart_id'      => $this->id, 
         'entity_table' => $entityTable,
         'entity_id'    => $entityID, 
-        'label'        => "{$entityTable}_{$entityID}",
+        'contribution_id' => $contributionID, 
+        'label'           => "{$entityTable}_{$entityID}",
       ];
       $item = CRM_Cartcheckout_BAO_CartItem::create($params);
       $this->addPriceFieldItem();
+      Civi::$statics[__CLASS__][__FUNCTION__][$cacheKey] = $item;
     }
     return $item;
   }
