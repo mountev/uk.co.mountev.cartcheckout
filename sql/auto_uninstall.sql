@@ -17,6 +17,7 @@
 
 SET FOREIGN_KEY_CHECKS=0;
 
+DROP TABLE IF EXISTS `civicrm_purchased_papers`;
 DROP TABLE IF EXISTS `civicrm_cart_item`;
 DROP TABLE IF EXISTS `civicrm_cart`;
 

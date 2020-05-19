@@ -71,4 +71,23 @@ return [
       ]
     ],
   ],
+  'cartcheckout_paper_path' => [
+    'name' => 'cartcheckout_paper_path',
+    'type' => 'String',
+    'html_type'  => 'text',
+    'html_attributes' => [
+      'class' => 'huge',
+    ],
+    'default'     => FALSE,
+    'add'         => '5.25',
+    'is_domain'   => 1,
+    'is_contact'  => 0,
+    'title'       => E::ts('Path to Papers'),
+    'description' => E::ts('Specify the path that will be used to construct the full path to papers. E.g: https://example.org/system/files/papers/'),
+    'settings_pages' => [
+      'cart-checkout' => [
+        'weight' => 10,
+      ]
+    ],
+  ],
 ];

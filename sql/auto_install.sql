@@ -30,6 +30,7 @@
 
 SET FOREIGN_KEY_CHECKS=0;
 
+DROP TABLE IF EXISTS `civicrm_purchased_papers`;
 DROP TABLE IF EXISTS `civicrm_cart_item`;
 DROP TABLE IF EXISTS `civicrm_cart`;
 
@@ -51,13 +52,13 @@ CREATE TABLE `civicrm_cart` (
      `id` int unsigned NOT NULL AUTO_INCREMENT  COMMENT 'Unique Cart ID',
      `user_id` int unsigned    COMMENT 'FK to Contact',
      `is_completed` tinyint   DEFAULT 0 ,
-     `payment_id` int unsigned    COMMENT 'FK to checked out Contribution' 
+     `payment_id` int unsigned    COMMENT 'FK to checked out Payment' 
 ,
         PRIMARY KEY (`id`)
  
  
 ,          CONSTRAINT FK_civicrm_cart_user_id FOREIGN KEY (`user_id`) REFERENCES `civicrm_contact`(`id`) ON DELETE CASCADE,          CONSTRAINT FK_civicrm_cart_payment_id FOREIGN KEY (`payment_id`) REFERENCES `civicrm_contribution`(`id`) ON DELETE SET NULL  
-)    ;
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci ;
 
 -- /*******************************************************
 -- *
@@ -81,6 +82,24 @@ CREATE TABLE `civicrm_cart_item` (
  
  
 ,          CONSTRAINT FK_civicrm_cart_item_cart_id FOREIGN KEY (`cart_id`) REFERENCES `civicrm_cart`(`id`) ON DELETE CASCADE,          CONSTRAINT FK_civicrm_cart_item_pfv_id FOREIGN KEY (`pfv_id`) REFERENCES `civicrm_price_field_value`(`id`) ON DELETE SET NULL  
-)    ;
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci ;
 
+-- /*******************************************************
+-- *
+-- * civicrm_purchased_papers
+-- *
+-- *******************************************************/
+CREATE TABLE `civicrm_purchased_papers` (
+
+
+     `id` int unsigned NOT NULL AUTO_INCREMENT  COMMENT 'Unique PurchasedPapers ID',
+     `contact_id` int unsigned    COMMENT 'FK to Contact',
+     `contribution_id` int unsigned    COMMENT 'FK to Payment',
+     `paper_number` varchar(16) NOT NULL   ,
+     `paper` varchar(512)     
+,
+        PRIMARY KEY (`id`)
  
+ 
+,          CONSTRAINT FK_civicrm_purchased_papers_contact_id FOREIGN KEY (`contact_id`) REFERENCES `civicrm_contact`(`id`) ON DELETE CASCADE,          CONSTRAINT FK_civicrm_purchased_papers_contribution_id FOREIGN KEY (`contribution_id`) REFERENCES `civicrm_contribution`(`id`) ON DELETE CASCADE  
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci ;

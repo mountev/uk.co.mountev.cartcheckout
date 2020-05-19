@@ -31,9 +31,15 @@ class CRM_Cartcheckout_Utils {
         $paper->fetch();
         if ($paper->id && $paper->filename) {
           $cart = CRM_Cartcheckout_BAO_Cart::getUserCart();
-          // fixme: add amount section to paper table
-          $item = $cart->addLabelItem(ts('Paper') . " - {$paper->filename}", (!empty($paper->amount) ? $paper->amount : 4.00));
-          $item->setEntity('civicrm_custom_pdfpapers', $paper->id);
+          if (!$cart->entityExist('civicrm_custom_pdfpapers', $paper->id)) {
+            // fixme: add amount section to paper table
+            $item = $cart->addLabelItem(ts('Paper') . " - {$paper->filename}", (!empty($paper->amount) ? $paper->amount : 4.00));
+            $item->setEntity('civicrm_custom_pdfpapers', $paper->id);
+            CRM_Core_Session::setStatus(ts("Paper %1 added to the Cart.", [1 => $pnum]), ts('Cart Item Added'), 'success');
+          } else {
+            CRM_Core_Session::setStatus(ts("Paper %1 already exist in the Cart.", [1 => $pnum]), ts('Paper Already In Cart'), 'success');
+            $item = TRUE;
+          }
         }
       }
     } else if ($amount > 0) {
@@ -77,4 +83,5 @@ class CRM_Cartcheckout_Utils {
     }
     return $result;
   }
+
 }

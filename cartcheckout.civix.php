@@ -485,5 +485,11 @@ function _cartcheckout_civix_civicrm_entityTypes(&$entityTypes) {
       'class' => 'CRM_Cartcheckout_DAO_CartItem',
       'table' => 'civicrm_cart_item',
     ),
+    'CRM_Cartcheckout_DAO_PurchasedPapers' => 
+    array (
+      'name' => 'PurchasedPapers',
+      'class' => 'CRM_Cartcheckout_DAO_PurchasedPapers',
+      'table' => 'civicrm_purchased_papers',
+    ),
   ));
 }

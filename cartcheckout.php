@@ -432,7 +432,7 @@ function cartcheckout_civicrm_completeCheckout($checkoutContributionId) {
             $result = civicrm_api3('Payment', 'create', [
               'contribution_id' => $itemContribution->id,//linked pending payment
               'total_amount'    => $itemContribution->total_amount,
-              'payment_instrument_id' => 'Cart Payment',
+              'payment_instrument_id' => 'Check',
             ]);
             if (!empty($result['id'])) {
               // receipt would have been successfull (without invoice) 
@@ -456,9 +456,29 @@ function cartcheckout_civicrm_completeCheckout($checkoutContributionId) {
           catch (Exception $e) {
             \Civi::log()->debug('CartPayment error creating payments: ' . $e->getMessage());
           }
+        } else if ($item->entity_table == 'civicrm_custom_pdfpapers' && $item->entity_id) {
+          // Add details to individual custom set
+          CRM_Cartcheckout_BAO_PurchasedPapers::addPaper($item->entity_id, $checkoutContribution->id, $checkoutContribution->contact_id);
         }
       }
       $completedCart = $cart->setCompleted($checkoutContributionId);
     }
+  }
+}
+
+function cartcheckout_civicrm_pageRun(&$page) {
+  $pageName = $page->getVar('_name');
+  if ($pageName == 'CRM_Contact_Page_View_UserDashBoard') {
+    $template = CRM_Core_Smarty::singleton();
+    $dashElements = $template->get_template_vars('dashboardElements');
+    array_unshift($dashElements, [
+      'class'        => 'crm-dashboard-papers',
+      'templatePath' => 'CRM/Cartcheckout/Page/UserDashboard.tpl',
+      'sectionTitle' => 'Papers',
+      'weight'       => 10,
+    ]);
+    $template->assign('dashboardElements', $dashElements);
+    $papers = CRM_Cartcheckout_BAO_PurchasedPapers::getPapers();
+    $template->assign('cartcheckoutPaperRows', $papers);
   }
 }

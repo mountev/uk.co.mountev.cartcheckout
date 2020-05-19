@@ -190,4 +190,14 @@ class CRM_Cartcheckout_BAO_Cart extends CRM_Cartcheckout_DAO_Cart {
     return $checkedOut;
   }
 
+  public function entityExist($entityTable, $entityID) {
+    if ($this->id && $entityTable && $entityID) {
+      $item = new CRM_Cartcheckout_DAO_CartItem();
+      $item->cart_id      = $this->id;
+      $item->entity_table = $entityTable;
+      $item->entity_id    = $entityID;
+      return $item->find(TRUE);
+    }
+    return FALSE;
+  }
 }

@@ -134,4 +134,5 @@ class CRM_Cartcheckout_BAO_CartItem extends CRM_Cartcheckout_DAO_CartItem {
     }
     return FALSE;
   }
+
 }
