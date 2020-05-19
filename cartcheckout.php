@@ -270,6 +270,22 @@ function cartcheckout_civicrm_pre($op, $objectName, $objectId, &$objectRef) {
       $objectRef['status_id'] = $participantStatus['Pending in cart'];
     } 
   }
+  if ($op == 'create' && $objectName == 'LineItem') {
+    if ($objectRef['entity_table'] == 'civicrm_contribution') {
+      $pageId = CRM_Core_DAO::getFieldValue('CRM_Contribute_DAO_Contribution', $objectRef['entity_id'], 'contribution_page_id', 'id');
+      if ($pageId == Civi::settings()->get('cartcheckout_page_id')) {
+        $cart = CRM_Cartcheckout_BAO_Cart::getUserCart();
+        foreach ($cart->getCheckedOutItems() as $item) {
+          if ($objectRef['price_field_value_id'] == $item->pfv_id) {
+            $financialTypeId = Civi::settings()->get("cartcheckout_{$item->entity_table}_ft_id");
+            if ($financialTypeId) {
+              $objectRef['financial_type_id'] = $financialTypeId;
+            }
+          }
+        }
+      }
+    }
+  }
   //if ($op == 'create' && $objectName == 'Membership') {
   //  $session = CRM_Core_Session::singleton();
   //  $qfKey   = CRM_Utils_Request::retrieve('qfKey', 'String', CRM_Core_DAO::$_nullObject);
@@ -414,6 +430,7 @@ function cartcheckout_civicrm_alterMailParams(&$params, $context) {
   }
 }
 
+// fixme: move it to Utils
 function cartcheckout_civicrm_completeCheckout($checkoutContributionId) {
   $checkoutContribution = CRM_Contribute_BAO_Contribution::getValues(['id' => $checkoutContributionId]);
   $contributionStatuses = CRM_Contribute_PseudoConstant::contributionStatus(NULL, 'name');

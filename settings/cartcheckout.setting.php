@@ -71,6 +71,50 @@ return [
       ]
     ],
   ],
+  'cartcheckout_civicrm_participant_ft_id' => [
+    'name' => 'cartcheckout_civicrm_participant_ft_id',
+    'type' => 'Integer',
+    'html_type'  => 'select',
+    'pseudoconstant' => [
+      'callback'  => 'CRM_Financial_BAO_FinancialType::getAvailableFinancialTypes',
+    ],
+    'html_attributes' => [
+      'class' => 'crm-select2',
+    ],
+    'default'     => 0,
+    'add'         => '5.25',
+    'is_domain'   => 1,
+    'is_contact'  => 0,
+    'title'       => E::ts('Financial Type for Event Cart Items'),
+    'description' => E::ts('Line item financial type to use for event related cart items.'),
+    'settings_pages' => [
+      'cart-checkout' => [
+        'weight' => 10,
+      ]
+    ],
+  ],
+  'cartcheckout_civicrm_membership_ft_id' => [
+    'name' => 'cartcheckout_civicrm_membership_ft_id',
+    'type' => 'Integer',
+    'html_type'  => 'select',
+    'pseudoconstant' => [
+      'callback'  => 'CRM_Financial_BAO_FinancialType::getAvailableFinancialTypes',
+    ],
+    'html_attributes' => [
+      'class' => 'crm-select2',
+    ],
+    'default'     => 0,
+    'add'         => '5.25',
+    'is_domain'   => 1,
+    'is_contact'  => 0,
+    'title'       => E::ts('Financial Type for Membership Cart Items'),
+    'description' => E::ts('Line item financial type to use for membership related cart items.'),
+    'settings_pages' => [
+      'cart-checkout' => [
+        'weight' => 10,
+      ]
+    ],
+  ],
   'cartcheckout_paper_path' => [
     'name' => 'cartcheckout_paper_path',
     'type' => 'String',
