@@ -189,6 +189,7 @@ function cartcheckout_civicrm_buildForm($formName, &$form) {
       'template' => "{$templatePath}/AddToCartOption.tpl"
     ]);
   }
+
 }
 
 function cartcheckout_civicrm_preProcess($formName, &$form) {
@@ -374,14 +375,22 @@ function cartcheckout_civicrm_buildAmount($pageType, &$form, &$amount) {
     $feeBlock = &$amount;
     foreach ($feeBlock as $pfId => &$fee) {
       if ($fee['name'] == 'cart_items' && is_array($fee['options'])) {
+        $defaults = ["price_{$pfId}" => []];
         foreach ($fee['options'] as $opId => &$option) {
           if (array_key_exists($opId, $items)) {
             $items[$opId]->getLabelAndAmount();
             $option['label']  = $items[$opId]->label;
             $option['amount'] = $items[$opId]->amount;
+            $defaults["price_{$pfId}"][$opId] = 1;
           } else {
             unset($fee['options'][$opId]);
           }
+        }
+        if (!empty($defaults["price_{$pfId}"])) {
+          // Just changing the default flag in feeBlock doesn't work, 
+          // as default method is separate and change doesn't propagate.
+          // Use $form method instead.
+          $form->setDefaults($defaults);
         }
       } else {
         unset($feeBlock[$pfId]);
