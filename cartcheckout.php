@@ -193,6 +193,43 @@ function cartcheckout_civicrm_buildForm($formName, &$form) {
 }
 
 function cartcheckout_civicrm_preProcess($formName, &$form) {
+  $eventIds = Civi::settings()->get('cartcheckout_addtocart_event_id');
+  $pageIds = Civi::settings()->get('cartcheckout_addtocart_page_id');
+  if (($formName == 'CRM_Event_Form_Registration_Register' && in_array($form->_eventId, $eventIds)) ||
+    ($formName == 'CRM_Contribute_Form_Contribution_Main' && in_array($form->_id, $pageIds))
+  ) {
+    $pps = $form->getVar('_paymentProcessors');
+    if (empty($pps[0])) {
+      $resetDefaultProcessor = TRUE;
+      $ppID = $form->getVar('_paymentProcessorID');
+      if (count($pps) == 1 && $pps[$ppID]['is_default'] == 1) {
+        // If there was only one processor with default, make sure it's set as default
+        // before we add pay later
+        $form->setDefaults(['payment_processor_id' => $ppID]);
+        $resetDefaultProcessor = FALSE;
+      }
+      // add pay later option to be used by the cart
+      $pps[0] = CRM_Financial_BAO_PaymentProcessor::getPayment(0);
+      $form->setVar('_paymentProcessors', $pps);
+      $form->set('paymentProcessors', $pps);
+      // enable pay later to be used by cart
+      $form->_values['event']['is_pay_later'] = 1;
+      $form->set('values', $form->_values);
+
+      // make sure to hide pay later option for user, as it's not supposed 
+      // to be used by user as a payment option.
+      $form->assign('cartcheckoutHidePayLater', 1);
+
+      if ($resetDefaultProcessor) {
+        $form->setVar('_paymentProcessorID', NULL);
+        $form->assign('paymentProcessorID', $ppID);
+        $form->_paymentProcessor = [];
+        $form->set('type', $ppID);
+        $form->set('paymentProcessor', $form->_paymentProcessor);
+        $form->assign('paymentProcessor', $form->_paymentProcessor);
+      }
+    }
+  }
   if ($formName == 'CRM_Event_Form_Registration_Confirm') {
     $params = $form->get('params');
     if (!empty($params[0]['add_to_cartcheckout'])) {
@@ -252,12 +289,6 @@ function cartcheckout_civicrm_postProcess($formName, &$form) {
     }
   }
 }
-
-//function cartcheckout_civicrm_validateForm($formName, &$fields, &$files, &$form, &$errors) {
-//  if ($formName == 'CRM_Event_Form_Registration_Register') {
-//    $data = &$form->controller->container();
-//  }
-//}
 
 function cartcheckout_civicrm_pre($op, $objectName, $objectId, &$objectRef) {
   if ($op == 'create' && $objectName == 'Participant') {

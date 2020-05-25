@@ -9,6 +9,12 @@
     $("#cart_checkout_btn_bottom").appendTo("#crm-submit-buttons");
     $("#cart_checkout_btn_top").appendTo("div.payment_processor-section div.content").show();
 
+    var hidePayLater = {/literal}"{$cartcheckoutHidePayLater}"{literal};
+    if (hidePayLater == '1') {
+      $('label[for=CIVICRM_QFID_0_payment_processor_id], input#CIVICRM_QFID_0_payment_processor_id').hide();
+    }
+
+
     // when back button is used for a cart method
     if ($("input[name='add_to_cartcheckout']").val()) {
       // if back button is used, unset payment method, so user could re-select a different
