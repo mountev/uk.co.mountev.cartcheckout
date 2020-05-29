@@ -101,6 +101,7 @@ class CRM_Cartcheckout_BAO_CartItem extends CRM_Cartcheckout_DAO_CartItem {
       }
       $labels[] = $line['label'];
       $contributionId = $line['contribution_id'];
+      $this->financial_type_id = $line['financial_type_id'];
     }
     if ($contributionId) {
       $this->amount = CRM_Core_DAO::getFieldValue('CRM_Contribute_BAO_Contribution', $contributionId, 'total_amount');
@@ -111,7 +112,8 @@ class CRM_Cartcheckout_BAO_CartItem extends CRM_Cartcheckout_DAO_CartItem {
       $dao = self::create([
         'id'     => $this->id, 
         'label'  => $this->label, 
-        'amount' => $this->amount
+        'amount' => $this->amount,
+        'financial_type_id' => $this->financial_type_id
       ]);
     }
 

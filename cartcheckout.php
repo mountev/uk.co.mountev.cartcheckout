@@ -189,7 +189,15 @@ function cartcheckout_civicrm_buildForm($formName, &$form) {
       'template' => "{$templatePath}/AddToCartOption.tpl"
     ]);
   }
-
+  if ($formName == 'CRM_Event_Form_Registration_ThankYou' || $formName == 'CRM_Contribute_Form_Contribution_ThankYou') {
+    $params = $form->get('params');
+    $isAddToCart = ($formName == 'CRM_Event_Form_Registration_ThankYou') ? (!empty($params[0]['add_to_cartcheckout'])) : !empty($params['add_to_cartcheckout']);
+    if ($isAddToCart) {
+      $url = CRM_Utils_System::url('civicrm/contribute/transact', "reset=1&id=" . Civi::settings()->get('cartcheckout_page_id'));
+      $msg = "Visit <a href='{$url}'>checkout page</a> to pay for your cart items.";
+      $form->assign('pay_later_receipt', $msg);
+    }
+  }
 }
 
 function cartcheckout_civicrm_preProcess($formName, &$form) {
@@ -242,6 +250,8 @@ function cartcheckout_civicrm_preProcess($formName, &$form) {
     if (!empty($params['add_to_cartcheckout'])) {
       // suppress notificaton
       $form->_values['is_email_receipt'] = 0;
+      // set it back in session so thankyou page knows about it, and shows instructions accordingly.
+      $form->set('values', $form->_values);
     }
   }
 }
@@ -308,11 +318,8 @@ function cartcheckout_civicrm_pre($op, $objectName, $objectId, &$objectRef) {
       if ($pageId == Civi::settings()->get('cartcheckout_page_id')) {
         $cart = CRM_Cartcheckout_BAO_Cart::getUserCart();
         foreach ($cart->getCheckedOutItems() as $item) {
-          if ($objectRef['price_field_value_id'] == $item->pfv_id) {
-            $financialTypeId = Civi::settings()->get("cartcheckout_{$item->entity_table}_ft_id");
-            if ($financialTypeId) {
-              $objectRef['financial_type_id'] = $financialTypeId;
-            }
+          if ($objectRef['price_field_value_id'] == $item->pfv_id && $item->financial_type_id) {
+            $objectRef['financial_type_id'] = $item->financial_type_id;
           }
         }
       }

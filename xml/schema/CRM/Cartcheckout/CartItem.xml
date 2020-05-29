@@ -74,6 +74,19 @@
   </foreignKey>
 
   <field>
+    <name>financial_type_id</name>
+    <title>Financial Type</title>
+    <type>int unsigned</type>
+    <comment>FK to Financial Type</comment>
+  </field>
+  <foreignKey>
+    <name>financial_type_id</name>
+    <table>civicrm_financial_type</table>
+    <key>id</key>
+    <onDelete>SET NULL</onDelete>
+  </foreignKey>
+
+  <field>
     <name>is_checkedout</name>
     <title>Is Checked Out?</title>
     <comment>Whether the item was included in final checkout</comment>

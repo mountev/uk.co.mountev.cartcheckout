@@ -52,13 +52,13 @@ CREATE TABLE `civicrm_cart` (
      `id` int unsigned NOT NULL AUTO_INCREMENT  COMMENT 'Unique Cart ID',
      `user_id` int unsigned    COMMENT 'FK to Contact',
      `is_completed` tinyint   DEFAULT 0 ,
-     `payment_id` int unsigned    COMMENT 'FK to checked out Payment' 
+     `payment_id` int unsigned    COMMENT 'FK to checked out Contribution' 
 ,
         PRIMARY KEY (`id`)
  
  
 ,          CONSTRAINT FK_civicrm_cart_user_id FOREIGN KEY (`user_id`) REFERENCES `civicrm_contact`(`id`) ON DELETE CASCADE,          CONSTRAINT FK_civicrm_cart_payment_id FOREIGN KEY (`payment_id`) REFERENCES `civicrm_contribution`(`id`) ON DELETE SET NULL  
-) ENGINE=InnoDB DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci ;
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci   ;
 
 -- /*******************************************************
 -- *
@@ -76,13 +76,14 @@ CREATE TABLE `civicrm_cart_item` (
      `entity_id` int unsigned    ,
      `contribution_id` int unsigned    COMMENT 'Old payment ID that was attached to entity',
      `pfv_id` int unsigned    COMMENT 'FK to civicrm_price_field_value Table',
+     `financial_type_id` int unsigned    COMMENT 'FK to Financial Type',
      `is_checkedout` tinyint   DEFAULT 0 COMMENT 'Whether the item was included in final checkout' 
 ,
         PRIMARY KEY (`id`)
  
  
-,          CONSTRAINT FK_civicrm_cart_item_cart_id FOREIGN KEY (`cart_id`) REFERENCES `civicrm_cart`(`id`) ON DELETE CASCADE,          CONSTRAINT FK_civicrm_cart_item_pfv_id FOREIGN KEY (`pfv_id`) REFERENCES `civicrm_price_field_value`(`id`) ON DELETE SET NULL  
-) ENGINE=InnoDB DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci ;
+,          CONSTRAINT FK_civicrm_cart_item_cart_id FOREIGN KEY (`cart_id`) REFERENCES `civicrm_cart`(`id`) ON DELETE CASCADE,          CONSTRAINT FK_civicrm_cart_item_pfv_id FOREIGN KEY (`pfv_id`) REFERENCES `civicrm_price_field_value`(`id`) ON DELETE SET NULL,          CONSTRAINT FK_civicrm_cart_item_financial_type_id FOREIGN KEY (`financial_type_id`) REFERENCES `civicrm_financial_type`(`id`) ON DELETE SET NULL  
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci   ;
 
 -- /*******************************************************
 -- *
@@ -94,7 +95,7 @@ CREATE TABLE `civicrm_purchased_papers` (
 
      `id` int unsigned NOT NULL AUTO_INCREMENT  COMMENT 'Unique PurchasedPapers ID',
      `contact_id` int unsigned    COMMENT 'FK to Contact',
-     `contribution_id` int unsigned    COMMENT 'FK to Payment',
+     `contribution_id` int unsigned    COMMENT 'FK to Contribution',
      `paper_number` varchar(16) NOT NULL   ,
      `paper` varchar(512)     
 ,
@@ -102,4 +103,6 @@ CREATE TABLE `civicrm_purchased_papers` (
  
  
 ,          CONSTRAINT FK_civicrm_purchased_papers_contact_id FOREIGN KEY (`contact_id`) REFERENCES `civicrm_contact`(`id`) ON DELETE CASCADE,          CONSTRAINT FK_civicrm_purchased_papers_contribution_id FOREIGN KEY (`contribution_id`) REFERENCES `civicrm_contribution`(`id`) ON DELETE CASCADE  
-) ENGINE=InnoDB DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci ;
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci   ;
+
+ 
