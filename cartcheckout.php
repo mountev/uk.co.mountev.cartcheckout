@@ -189,6 +189,14 @@ function cartcheckout_civicrm_buildForm($formName, &$form) {
       'template' => "{$templatePath}/AddToCartOption.tpl"
     ]);
   }
+  if ($formName == 'CRM_Event_Form_Registration_Confirm' || $formName == 'CRM_Contribute_Form_Contribution_Confirm') {
+    $params = $form->get('params');
+    $isAddToCart = ($formName == 'CRM_Event_Form_Registration_Confirm') ? (!empty($params[0]['add_to_cartcheckout'])) : !empty($params['add_to_cartcheckout']);
+    if ($isAddToCart) {
+      $msg = "Please continue to finish adding item to the cart.";
+      $form->assign('pay_later_receipt', $msg);
+    }
+  }
   if ($formName == 'CRM_Event_Form_Registration_ThankYou' || $formName == 'CRM_Contribute_Form_Contribution_ThankYou') {
     $params = $form->get('params');
     $isAddToCart = ($formName == 'CRM_Event_Form_Registration_ThankYou') ? (!empty($params[0]['add_to_cartcheckout'])) : !empty($params['add_to_cartcheckout']);
@@ -283,6 +291,7 @@ function cartcheckout_civicrm_postProcess($formName, &$form) {
       // for membership pages
       $session = CRM_Core_Session::singleton();
       // reset the flag first
+      // fixme: qfkey not known
       $session->set("cartcheckout_{$qfKey}_membership_page_id", 0);
       if (!empty($params['add_to_cartcheckout'])) {
         $session->set("cartcheckout_{$params['qfKey']}_membership_page_id", $form->_id);
