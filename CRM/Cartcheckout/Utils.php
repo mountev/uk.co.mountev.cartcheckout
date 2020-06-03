@@ -24,7 +24,7 @@ class CRM_Cartcheckout_Utils {
     $pnum   = CRM_Utils_Request::retrieve('pnum', 'String');
     // fixme: we 'll need to limit the number of additions. A count lookup may be required
     // before adding a new one. 
-    if ($type == 'paper') {
+    if ($type == 'paper' && Civi::settings()->get('cartcheckout_paper_amount')) {
       if ($pnum) {
         $sql = "SELECT id, filename FROM civicrm_custom_pdfpapers WHERE paper_number = %1";
         $paper = CRM_Core_DAO::executeQuery($sql, [1 => [$pnum, 'String']]);
@@ -32,8 +32,7 @@ class CRM_Cartcheckout_Utils {
         if ($paper->id && $paper->filename) {
           $cart = CRM_Cartcheckout_BAO_Cart::getUserCart();
           if (!$cart->entityExist('civicrm_custom_pdfpapers', $paper->id)) {
-            // fixme: add amount section to paper table
-            $item = $cart->addLabelItem(ts('Paper') . " - {$paper->filename}", (!empty($paper->amount) ? $paper->amount : 4.00));
+            $item = $cart->addLabelItem(ts('Paper') . " - {$paper->filename}", Civi::settings()->get('cartcheckout_paper_amount'));
             $item->setEntity('civicrm_custom_pdfpapers', $paper->id);
             CRM_Core_Session::setStatus(ts("Paper %1 added to the Cart.", [1 => $pnum]), ts('Cart Item Added'), 'success');
           } else {

@@ -71,6 +71,42 @@ return [
       ]
     ],
   ],
+  'cartcheckout_force_login' => [
+    'name' => 'cartcheckout_force_login',
+    'type' => 'Boolean',
+    'html_type'  => 'radio',
+    'quick_form_type'  => 'YesNo',
+    'default'     => 0,
+    'add'         => '5.25',
+    'is_domain'   => 1,
+    'is_contact'  => 0,
+    'title'       => E::ts('Does cart checkout require login?'),
+    'description' => E::ts('When set forces user to login first before making any cart payments.'),
+    'settings_pages' => [
+      'cart-checkout' => [
+        'weight' => 10,
+      ]
+    ],
+  ],
+  'cartcheckout_login_path' => [
+    'name' => 'cartcheckout_login_path',
+    'type' => 'String',
+    'html_type'  => 'text',
+    'html_attributes' => [
+      'class' => 'huge',
+    ],
+    'default'     => 'user/login',
+    'add'         => '5.25',
+    'is_domain'   => 1,
+    'is_contact'  => 0,
+    'title'       => E::ts('Login Path'),
+    'description' => E::ts('When users are required to login before making cart payments, this path would be used for constructing the login url. E.g user/login'),
+    'settings_pages' => [
+      'cart-checkout' => [
+        'weight' => 10,
+      ]
+    ],
+  ],
   'cartcheckout_paper_path' => [
     'name' => 'cartcheckout_paper_path',
     'type' => 'String',
@@ -84,6 +120,22 @@ return [
     'is_contact'  => 0,
     'title'       => E::ts('Path to Papers'),
     'description' => E::ts('Specify the path that will be used to construct the full path to papers. E.g: https://example.org/system/files/papers/'),
+    'settings_pages' => [
+      'cart-checkout' => [
+        'weight' => 10,
+      ]
+    ],
+  ],
+  'cartcheckout_paper_amount' => [
+    'name' => 'cartcheckout_paper_amount',
+    'type' => 'String',
+    'html_type'  => 'text',
+    'default'     => '2.50',
+    'add'         => '5.25',
+    'is_domain'   => 1,
+    'is_contact'  => 0,
+    'title'       => E::ts('Paper Amount'),
+    'description' => E::ts('Cost of any paper item that is going to be added to the Cart.'),
     'settings_pages' => [
       'cart-checkout' => [
         'weight' => 10,

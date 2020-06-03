@@ -209,6 +209,21 @@ function cartcheckout_civicrm_buildForm($formName, &$form) {
 }
 
 function cartcheckout_civicrm_preProcess($formName, &$form) {
+  if ($formName == 'CRM_Contribute_Form_Contribution_Main'      &&
+    $form->_id == Civi::settings()->get('cartcheckout_page_id')
+  ) {
+    if (Civi::settings()->get('cartcheckout_force_login') == 1 &&
+      empty(CRM_Core_Session::singleton()->get('userID'))
+    ) {
+      CRM_Utils_System::redirect(CRM_Utils_System::url(Civi::settings()->get('cartcheckout_login_path')));
+    } else {
+      $cart  = CRM_Cartcheckout_BAO_Cart::getUserCart();
+      $items = $cart->getItems();
+      if (empty($items)) {
+        CRM_Core_Error::fatal(ts('Please add items to the cart before making any payment.'));
+      }
+    }
+  }
   $eventIds = Civi::settings()->get('cartcheckout_addtocart_event_id');
   $pageIds = Civi::settings()->get('cartcheckout_addtocart_page_id');
   if (($formName == 'CRM_Event_Form_Registration_Register' && in_array($form->_eventId, $eventIds)) ||
