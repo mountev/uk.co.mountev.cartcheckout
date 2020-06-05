@@ -13,4 +13,12 @@
     <is_public>true</is_public>
     <is_ssl>true</is_ssl>
   </item>
+  <item>
+    <path>civicrm/cart/checkout</path>
+    <page_callback>CRM_Cartcheckout_Form_Checkout</page_callback>
+    <title>Cart Checkout</title>
+    <access_callback>1</access_callback>
+    <is_public>true</is_public>
+    <is_ssl>true</is_ssl>
+  </item>
 </menu>

@@ -49,7 +49,7 @@ class CRM_Cartcheckout_Utils {
       // $item = $cart->addLabelItem($label, $amount);
     }
     if ($item) {
-      CRM_Utils_System::redirect(CRM_Utils_System::url('civicrm/contribute/transact', "reset=1&id=" . Civi::settings()->get('cartcheckout_page_id')));
+      CRM_Utils_System::redirect(CRM_Utils_System::url('civicrm/cart/checkout', "reset=1"));
       //$result = ['is_added' => TRUE];
     }
     CRM_Utils_JSON::output($result);
@@ -81,6 +81,19 @@ class CRM_Cartcheckout_Utils {
       ];
     }
     return $result;
+  }
+
+  public static function loginRedirect() {
+    $path   = Civi::settings()->get('cartcheckout_login_path');
+    $config = CRM_Core_Config::singleton();
+    $uf     = $config->userFramework;
+    $query  = '';
+    if ($uf == 'WordPress') {
+    } else if ($config->userSystem->is_drupal) {
+      $query = "destination=civicrm/cart/checkout";
+    }
+    $url = CRM_Utils_System::url($path, $query);
+    CRM_Utils_System::redirect($url);
   }
 
 }

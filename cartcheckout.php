@@ -2,6 +2,7 @@
 
 require_once 'cartcheckout.civix.php';
 use CRM_Cartcheckout_ExtensionUtil as E;
+use CRM_Cartcheckout_Utils as U;
 
 /**
  * Implements hook_civicrm_config().
@@ -201,7 +202,7 @@ function cartcheckout_civicrm_buildForm($formName, &$form) {
     $params = $form->get('params');
     $isAddToCart = ($formName == 'CRM_Event_Form_Registration_ThankYou') ? (!empty($params[0]['add_to_cartcheckout'])) : !empty($params['add_to_cartcheckout']);
     if ($isAddToCart) {
-      $url = CRM_Utils_System::url('civicrm/contribute/transact', "reset=1&id=" . Civi::settings()->get('cartcheckout_page_id'));
+      $url = CRM_Utils_System::url('civicrm/cart/checkout', "reset=1");
       $msg = "Visit <a href='{$url}'>checkout page</a> to pay for your cart items.";
       $form->assign('pay_later_receipt', $msg);
     }
@@ -215,14 +216,8 @@ function cartcheckout_civicrm_preProcess($formName, &$form) {
     if (Civi::settings()->get('cartcheckout_force_login') == 1 &&
       empty(CRM_Core_Session::singleton()->get('userID'))
     ) {
-      CRM_Utils_System::redirect(CRM_Utils_System::url(Civi::settings()->get('cartcheckout_login_path')));
-    } else {
-      $cart  = CRM_Cartcheckout_BAO_Cart::getUserCart();
-      $items = $cart->getItems();
-      if (empty($items)) {
-        CRM_Core_Error::fatal(ts('Please add items to the cart before making any payment.'));
-      }
-    }
+      U::loginRedirect();
+    } 
   }
   $eventIds = Civi::settings()->get('cartcheckout_addtocart_event_id');
   $pageIds = Civi::settings()->get('cartcheckout_addtocart_page_id');
