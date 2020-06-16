@@ -181,7 +181,10 @@ function cartcheckout_civicrm_buildForm($formName, &$form) {
   if (($formName == 'CRM_Event_Form_Registration_Register' && in_array($form->_eventId, $eventIds)) ||
     ($formName == 'CRM_Contribute_Form_Contribution_Main' && in_array($form->_id, $pageIds))
   ) {
-    $form->add('hidden', 'add_to_cartcheckout', '');
+    if (!empty($form->get('cartcheckoutHidePayLater'))) {
+      $form->assign('cartcheckoutHidePayLater', 1);
+    }
+    $form->addRadio('add_to_cartcheckout', ts('Add to Cart'), [1 => "<i id='cart_icon' class='fa fa-shopping-cart'></i>&nbsp;" . ts('Add to Cart')], ['allowClear' => TRUE]);
     // Assumes templates are in a templates folder relative to this file
     $templatePath = realpath(dirname(__FILE__)."/templates");
     // dynamically insert a template block in the page
@@ -244,7 +247,7 @@ function cartcheckout_civicrm_preProcess($formName, &$form) {
 
       // make sure to hide pay later option for user, as it's not supposed 
       // to be used by user as a payment option.
-      $form->assign('cartcheckoutHidePayLater', 1);
+      $form->set('cartcheckoutHidePayLater', 1);
 
       if ($resetDefaultProcessor) {
         $form->setVar('_paymentProcessorID', NULL);
