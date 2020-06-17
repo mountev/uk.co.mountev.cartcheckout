@@ -441,6 +441,7 @@ function cartcheckout_civicrm_buildAmount($pageType, &$form, &$amount) {
             $items[$opId]->getLabelAndAmount();
             $option['label']  = $items[$opId]->label;
             $option['amount'] = $items[$opId]->amount;
+            $option['tax_amount'] = $items[$opId]->tax_amount;
             $defaults["price_{$pfId}"][$opId] = 1;
           } else {
             unset($fee['options'][$opId]);

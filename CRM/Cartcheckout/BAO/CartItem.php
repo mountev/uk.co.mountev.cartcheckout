@@ -88,31 +88,62 @@ class CRM_Cartcheckout_BAO_CartItem extends CRM_Cartcheckout_DAO_CartItem {
       return FALSE;
     }
     $labels = [];
+    $lineLabels = [];
     // fixme: if label exists in DB, return that
     if ($this->entity_table == 'civicrm_participant') {
       $labels[] = ts('Event');
+      $result = civicrm_api3('Participant', 'get', [
+        'sequential' => 1,
+        'return' => ["event_title"],
+        'id'     => $this->entity_id,
+      ]);
+      if (!empty($result['values'][0]['event_title'])) {
+        $labels[] = $result['values'][0]['event_title'];
+      }
     } else if ($this->entity_table == 'civicrm_membership') {
       $labels[] = ts('Membership');
     }
     $lineItems = CRM_Price_BAO_LineItem::getLineItems($this->entity_id, substr($this->entity_table, 8));
+    $taxAmount = 0.00;
     foreach ($lineItems as $line) {
       if ($this->contribution_id && ($this->contribution_id != $line['contribution_id'])) {
+        // memberships can have multiple renewal contributions.
+        // make sure to match the right one.
         continue;
       }
-      $labels[] = $line['label'];
+      $lineLabels[] = $line['label'];
       $contributionId = $line['contribution_id'];
       $this->financial_type_id = $line['financial_type_id'];
+      if ($line['tax_amount'] > 0) {
+        $taxAmount += $line['tax_amount'];
+      }
     }
     if ($contributionId) {
-      $this->amount = CRM_Core_DAO::getFieldValue('CRM_Contribute_BAO_Contribution', $contributionId, 'total_amount');
+      $contribution = CRM_Contribute_BAO_Contribution::getValues(['id' => $contributionId]);
+      $contribution = $contribution->toArray();
+      // not very accurate
+      //$labels[] = $contribution['amount_level'];
+      if (!empty($contribution['contribution_page_id'])) {
+        $labels[] = CRM_Core_DAO::getFieldValue('CRM_Contribute_DAO_ContributionPage', $contribution['contribution_page_id'], 'title');
+      }
+
+      $this->amount = $contribution['total_amount'];
+      if ($taxAmount > 0) {
+        $this->amount = $contribution['total_amount'] - $taxAmount;
+        $this->tax_amount = $taxAmount;
+      }
     }
-    $this->label  = implode(' - ', $labels);
+    $this->label = implode(' - ', $labels);
+    if (!empty($lineLabels)) {
+      $this->label .= ' - ' . implode(' - ', $lineLabels);
+    }
 
     if (!empty($this->id)) {
       $dao = self::create([
         'id'     => $this->id, 
         'label'  => $this->label, 
         'amount' => $this->amount,
+        'tax_amount' => $this->tax_amount,
         'financial_type_id' => $this->financial_type_id
       ]);
     }

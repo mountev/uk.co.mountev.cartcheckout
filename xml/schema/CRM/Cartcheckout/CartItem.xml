@@ -44,6 +44,12 @@
   </field>
 
   <field>
+    <name>tax_amount</name>
+    <type>decimal</type>
+    <length>20,2</length>
+  </field>
+
+  <field>
     <name>entity_table</name>
     <title>Entity Table</title>
     <type>varchar</type>

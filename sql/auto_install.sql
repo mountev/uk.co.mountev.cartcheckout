@@ -72,6 +72,7 @@ CREATE TABLE `civicrm_cart_item` (
      `cart_id` int unsigned NOT NULL   COMMENT 'FK to Cart',
      `label` varchar(255) NOT NULL   ,
      `amount` decimal(20,2)    ,
+     `tax_amount` decimal(20,2)    ,
      `entity_table` varchar(64)    ,
      `entity_id` int unsigned    ,
      `contribution_id` int unsigned    COMMENT 'Old payment ID that was attached to entity',
