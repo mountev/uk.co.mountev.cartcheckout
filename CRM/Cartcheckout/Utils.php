@@ -32,9 +32,12 @@ class CRM_Cartcheckout_Utils {
         if ($paper->id && $paper->filename) {
           $cart = CRM_Cartcheckout_BAO_Cart::getUserCart();
           if (!$cart->entityExist('civicrm_custom_pdfpapers', $paper->id)) {
-            $item = $cart->addLabelItem(ts('Paper') . " - {$paper->filename}", Civi::settings()->get('cartcheckout_paper_amount'));
-            $item->setEntity('civicrm_custom_pdfpapers', $paper->id);
+            $label = ts('Paper') . " - {$paper->filename}";
+            $cart->addItem('civicrm_custom_pdfpapers', $paper->id, NULL,
+              Civi::settings()->get('cartcheckout_civicrm_custom_pdfpapers_ft_id'), $label,
+              Civi::settings()->get('cartcheckout_paper_amount'));
             CRM_Core_Session::setStatus(ts("Paper %1 added to the Cart.", [1 => $pnum]), ts('Cart Item Added'), 'success');
+            $item = TRUE;
           } else {
             CRM_Core_Session::setStatus(ts("Paper %1 already exist in the Cart.", [1 => $pnum]), ts('Paper Already In Cart'), 'success');
             $item = TRUE;

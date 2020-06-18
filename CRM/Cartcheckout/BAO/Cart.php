@@ -84,7 +84,7 @@ class CRM_Cartcheckout_BAO_Cart extends CRM_Cartcheckout_DAO_Cart {
     return FALSE;
   }
 
-  public function addItem($entityTable, $entityID, $contributionID = NULL) {
+  public function addItem($entityTable, $entityID, $contributionID = NULL, $financialTypeID = NULL, $label = NULL, $amount = NULL, $taxAmount = NULL) {
     $cacheKey = "{$this->id}_{$entityTable}_{$entityID}_{$contributionID}";
     if (!empty(Civi::$statics[__CLASS__][__FUNCTION__][$cacheKey])) {
       return Civi::$statics[__CLASS__][__FUNCTION__][$cacheKey];
@@ -96,26 +96,15 @@ class CRM_Cartcheckout_BAO_Cart extends CRM_Cartcheckout_DAO_Cart {
         'cart_id'      => $this->id, 
         'entity_table' => $entityTable,
         'entity_id'    => $entityID, 
-        'contribution_id' => $contributionID, 
-        'label'           => "{$entityTable}_{$entityID}",
+        'contribution_id'   => $contributionID, 
+        'financial_type_id' => $financialTypeID, 
+        'label'             => $label ? $label : "{$entityTable}_{$entityID}",
+        'amount'            => $amount ? $amount : NULL,
+        'tax_amount'        => $taxAmount ? $taxAmount : NULL,
       ];
       $item = CRM_Cartcheckout_BAO_CartItem::create($params);
       $this->addPriceFieldItem();
       Civi::$statics[__CLASS__][__FUNCTION__][$cacheKey] = $item;
-    }
-    return $item;
-  }
-
-  public function addLabelItem($label, $amount) {
-    $item = FALSE;
-    if ($this->id && $label && $amount) {
-      $params = [
-        'cart_id' => $this->id, 
-        'label'   => $label,
-        'amount'  => $amount,
-      ];
-      $item = CRM_Cartcheckout_BAO_CartItem::create($params);
-      $this->addPriceFieldItem();
     }
     return $item;
   }

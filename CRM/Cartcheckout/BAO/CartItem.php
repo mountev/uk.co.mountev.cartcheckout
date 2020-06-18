@@ -151,21 +151,4 @@ class CRM_Cartcheckout_BAO_CartItem extends CRM_Cartcheckout_DAO_CartItem {
     return TRUE;
   }
 
-  public function setEntity($entityTable, $entityID, $contributionID = NULL) {
-    if ($this->id && $entityTable && $entityID) {
-      $params = [
-        'id'           => $this->id, 
-        'entity_table' => $entityTable,
-        'entity_id'    => $entityID, 
-        'contribution_id' => $contributionID, 
-      ];
-      $item = CRM_Cartcheckout_BAO_CartItem::create($params);
-      $this->entity_table = $item->entity_table;
-      $this->entity_id = $item->entity_id;
-      $this->contribution_id = $item->contribution_id;
-      return TRUE;
-    }
-    return FALSE;
-  }
-
 }
