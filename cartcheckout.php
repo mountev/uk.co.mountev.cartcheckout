@@ -295,19 +295,28 @@ function cartcheckout_civicrm_postProcess($formName, &$form) {
     }
   }
   if ($formName == 'CRM_Contribute_Form_Contribution_Main') {
-    $params = $form->_params;
+    $pageIds = Civi::settings()->get('cartcheckout_addtocart_page_id');
     if ($form->_id == Civi::settings()->get('cartcheckout_page_id')) {
       // for checkout payment
       $cart = CRM_Cartcheckout_BAO_Cart::getUserCart();
-      $cart->checkoutItems($params);
-    } else if (!empty($params['selectMembership'])) {
-      // for membership pages
+      $cart->checkoutItems($form->_params);
+    } else if (in_array($form->_id, $pageIds)) {
+      $params = $form->_params;
+      $qfKey  = $params['qfKey'];
       $session = CRM_Core_Session::singleton();
-      // reset the flag first
-      // fixme: qfkey not known
-      $session->set("cartcheckout_{$qfKey}_membership_page_id", 0);
-      if (!empty($params['add_to_cartcheckout'])) {
-        $session->set("cartcheckout_{$params['qfKey']}_membership_page_id", $form->_id);
+      if (!empty($params['selectMembership'])) {
+        // for membership pages
+        // reset the flag first
+        // fixme: qfkey not known
+        $session->set("cartcheckout_{$qfKey}_membership_page_id", 0);
+        if (!empty($params['add_to_cartcheckout'])) {
+          $session->set("cartcheckout_{$params['qfKey']}_membership_page_id", $form->_id);
+        }
+      } else {
+        $session->set("cartcheckout_{$qfKey}_contribution_page_id", 0);
+        if (!empty($params['add_to_cartcheckout'])) {
+          $session->set("cartcheckout_{$params['qfKey']}_contribution_page_id", $form->_id);
+        }
       }
     }
   }
@@ -409,6 +418,18 @@ function cartcheckout_civicrm_post($op, $objectName, $objectId, &$objectRef) {
     }
   }
 
+  if ($op == 'create' && $objectName == 'Contribution' && $objectId) {
+    $session = CRM_Core_Session::singleton();
+    $qfKey   = CRM_Utils_Request::retrieve('qfKey', 'String', CRM_Core_DAO::$_nullObject);
+    // check if any contribution was added as cart item
+    if ($session->get("cartcheckout_{$qfKey}_contribution_page_id") && 
+      $objectRef->contribution_page_id == $session->get("cartcheckout_{$qfKey}_contribution_page_id")
+    ) {
+      $cart = CRM_Cartcheckout_BAO_Cart::getUserCart();
+      $cart->addItem('civicrm_contribution', $objectId, $objectId);
+    }
+  }
+
   // online contribution first creates pending contribution,which then gets completed 
   // after creating lineitem and financial item. And therefore we use 'edit' as operation.
   // if ($op == 'edit' && $objectName == 'Contribution' && $objectId) {
@@ -486,7 +507,6 @@ function cartcheckout_civicrm_alterMailParams(&$params, $context) {
       // Get in-progress cart if any
       $cart = CRM_Cartcheckout_BAO_Cart::getUserCart(TRUE);
       if ($cart) {
-        $participantIds = [];
         foreach ($cart->getCheckedOutItems() as $item) {
           if (($item->entity_table == $entityTable) && ($entityId == $item->entity_id)) {
             // unset isemailpdf to invoice doesn't get attached. Invoice should only be sent 
@@ -515,33 +535,39 @@ function cartcheckout_civicrm_completeCheckout($checkoutContributionId) {
         if ($itemContribution && 
           $itemContribution->contribution_status_id == array_search('Pending', $contributionStatuses)
         ) {
-          try {
-            $result = civicrm_api3('Payment', 'create', [
-              'contribution_id' => $itemContribution->id,//linked pending payment
-              'total_amount'    => $itemContribution->total_amount,
-              'payment_instrument_id' => 'Check',
-            ]);
-            if (!empty($result['id'])) {
-              // receipt would have been successfull (without invoice) 
-              // replace linked payment to that of checkout payment
-              CRM_Contribute_BAO_Contribution::deleteContribution($itemContribution->id);
-              if ($item->entity_table == 'civicrm_participant') {
-                $params = [
-                  'participant_id'  => $item->entity_id,
-                  'contribution_id' => $checkoutContributionId,
-                ];
-                $ppcreate = civicrm_api3('ParticipantPayment', 'create', $params);
-              } else if ($item->entity_table == 'civicrm_membership') {
-                $params = [
-                  'membership_id'  => $item->entity_id,
-                  'contribution_id' => $checkoutContributionId,
-                ];
-                $mpcreate = civicrm_api3('MembershipPayment', 'create', $params);
+          if ($item->entity_table == 'civicrm_contribution') {
+            // just delete old payment. We don't want to complete it as there are no separate receipts
+            // that we would like to trigger. Checkout payment receipt should suffice.
+            CRM_Contribute_BAO_Contribution::deleteContribution($itemContribution->id);
+          } else {
+            try {
+              $result = civicrm_api3('Payment', 'create', [
+                'contribution_id' => $itemContribution->id,//linked pending payment
+                'total_amount'    => $itemContribution->total_amount,
+                'payment_instrument_id' => 'Check',
+              ]);
+              if (!empty($result['id'])) {
+                // receipt would have been successfull (without invoice) 
+                // replace linked payment to that of checkout payment
+                CRM_Contribute_BAO_Contribution::deleteContribution($itemContribution->id);
+                if ($item->entity_table == 'civicrm_participant') {
+                  $params = [
+                    'participant_id'  => $item->entity_id,
+                    'contribution_id' => $checkoutContributionId,
+                  ];
+                  $ppcreate = civicrm_api3('ParticipantPayment', 'create', $params);
+                } else if ($item->entity_table == 'civicrm_membership') {
+                  $params = [
+                    'membership_id'  => $item->entity_id,
+                    'contribution_id' => $checkoutContributionId,
+                  ];
+                  $mpcreate = civicrm_api3('MembershipPayment', 'create', $params);
+                }
               }
             }
-          }
-          catch (Exception $e) {
-            \Civi::log()->debug('CartPayment error creating payments: ' . $e->getMessage());
+            catch (Exception $e) {
+              \Civi::log()->debug('CartPayment error creating payments: ' . $e->getMessage());
+            }
           }
         } else if ($item->entity_table == 'civicrm_custom_pdfpapers' && $item->entity_id) {
           // Add details to individual custom set
