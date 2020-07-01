@@ -588,7 +588,7 @@ function cartcheckout_civicrm_pageRun(&$page) {
       'class'        => 'crm-dashboard-papers',
       'templatePath' => 'CRM/Cartcheckout/Page/UserDashboard.tpl',
       'sectionTitle' => 'Papers',
-      'weight'       => 10,
+      'weight'       => 4,
     ]);
     $template->assign('dashboardElements', $dashElements);
     $papers = CRM_Cartcheckout_BAO_PurchasedPapers::getPapers();
