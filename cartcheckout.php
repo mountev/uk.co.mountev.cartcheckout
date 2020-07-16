@@ -587,7 +587,7 @@ function cartcheckout_civicrm_pageRun(&$page) {
     array_unshift($dashElements, [
       'class'        => 'crm-dashboard-papers',
       'templatePath' => 'CRM/Cartcheckout/Page/UserDashboard.tpl',
-      'sectionTitle' => 'Papers',
+      'sectionTitle' => 'Your Paper(s)',
       'weight'       => 4,
     ]);
     $template->assign('dashboardElements', $dashElements);
