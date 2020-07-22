@@ -488,20 +488,6 @@ function cartcheckout_civicrm_buildAmount($pageType, &$form, &$amount) {
  */
 function cartcheckout_civicrm_alterMailParams(&$params, $context) {
   if ($context == 'messageTemplate'
-    && $params['groupName'] == 'msg_tpl_workflow_contribution'
-    && $params['valueName'] == 'contribution_invoice_receipt'
-    && $params['tplParams']['component'] == 'contribute'
-    && !empty($params['tplParams']['id'])
-  ) {
-    // Make invoices respect Currency. This a problem when system uses multi currency, and a contribution uses
-    // currency other than default currency.
-    $contribCurrency = CRM_Core_DAO::getFieldValue('CRM_Contribute_DAO_Contribution', $params['tplParams']['id'], 'currency');
-    if ($params['tplParams']['defaultCurrency'] != $contribCurrency) {
-      $params['tplParams']['currency'] = $contribCurrency; 
-      $params['tplParams']['defaultCurrency'] = $contribCurrency;
-    }
-  }
-  if ($context == 'messageTemplate'
     && in_array($params['groupName'], ['msg_tpl_workflow_event', 'msg_tpl_workflow_membership'])
     && !empty($params['isEmailPdf'])
     && !empty($params['contributionId'])
