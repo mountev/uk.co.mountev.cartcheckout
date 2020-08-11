@@ -176,10 +176,12 @@ function cartcheckout_civicrm_navigationMenu(&$menu) {
  * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_tokenValues
  */
 function cartcheckout_civicrm_buildForm($formName, &$form) {
+  $addToCartOnLogin = Civi::settings()->get('cartcheckout_addtocart_login');
   $eventIds = Civi::settings()->get('cartcheckout_addtocart_event_id');
   $pageIds = Civi::settings()->get('cartcheckout_addtocart_page_id');
-  if (($formName == 'CRM_Event_Form_Registration_Register' && in_array($form->_eventId, $eventIds)) ||
-    ($formName == 'CRM_Contribute_Form_Contribution_Main' && in_array($form->_id, $pageIds))
+  if ((($addToCartOnLogin && CRM_Utils_System::isUserLoggedIn()) || !$addToCartOnLogin) && 
+    (($formName == 'CRM_Event_Form_Registration_Register' && in_array($form->_eventId, $eventIds)) ||
+    ($formName == 'CRM_Contribute_Form_Contribution_Main' && in_array($form->_id, $pageIds)))
   ) {
     if (!empty($form->get('cartcheckoutHidePayLater'))) {
       $form->assign('cartcheckoutHidePayLater', 1);
@@ -551,6 +553,9 @@ function cartcheckout_civicrm_completeCheckout($checkoutContributionId) {
                 // replace linked payment to that of checkout payment
                 CRM_Contribute_BAO_Contribution::deleteContribution($itemContribution->id);
                 if ($item->entity_table == 'civicrm_participant') {
+                  // sometimes user adds to cart from different email, but logs in to an account with another email.
+                  // for such cases make sure contact is corretly routed.
+                  // CRM_Core_DAO::setFieldValue('CRM_Event_DAO_Participant', $participantID, 'contact_id', $checkoutContribution->contact_id);
                   $params = [
                     'participant_id'  => $item->entity_id,
                     'contribution_id' => $checkoutContributionId,

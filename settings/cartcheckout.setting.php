@@ -71,6 +71,23 @@ return [
       ]
     ],
   ],
+  'cartcheckout_addtocart_login' => [
+    'name' => 'cartcheckout_addtocart_login',
+    'type' => 'Boolean',
+    'html_type'  => 'radio',
+    'quick_form_type'  => 'YesNo',
+    'default'     => 0,
+    'add'         => '5.25',
+    'is_domain'   => 1,
+    'is_contact'  => 0,
+    'title'       => E::ts('Does add to cart option require login?'),
+    'description' => E::ts('When set user won\'t see the option of add to cart if they are logged out.'),
+    'settings_pages' => [
+      'cart-checkout' => [
+        'weight' => 10,
+      ]
+    ],
+  ],
   'cartcheckout_force_login' => [
     'name' => 'cartcheckout_force_login',
     'type' => 'Boolean',
