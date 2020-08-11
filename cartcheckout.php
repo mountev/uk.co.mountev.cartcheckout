@@ -224,10 +224,12 @@ function cartcheckout_civicrm_preProcess($formName, &$form) {
       U::loginRedirect();
     } 
   }
+  $addToCartOnLogin = Civi::settings()->get('cartcheckout_addtocart_login');
   $eventIds = Civi::settings()->get('cartcheckout_addtocart_event_id');
   $pageIds = Civi::settings()->get('cartcheckout_addtocart_page_id');
-  if (($formName == 'CRM_Event_Form_Registration_Register' && in_array($form->_eventId, $eventIds)) ||
-    ($formName == 'CRM_Contribute_Form_Contribution_Main' && in_array($form->_id, $pageIds))
+  if ((($addToCartOnLogin && CRM_Utils_System::isUserLoggedIn()) || !$addToCartOnLogin) && 
+    (($formName == 'CRM_Event_Form_Registration_Register' && in_array($form->_eventId, $eventIds)) ||
+    ($formName == 'CRM_Contribute_Form_Contribution_Main' && in_array($form->_id, $pageIds)))
   ) {
     $pps = $form->getVar('_paymentProcessors');
     if (empty($pps[0])) {
