@@ -35,6 +35,13 @@ class CRM_Cartcheckout_BAO_Cart extends CRM_Cartcheckout_DAO_Cart {
     }
   }
 
+  public function recordPaymentID($paymentId = NULL) {
+    if (!empty($this->id)) {
+      $params = ['id' => $this->id, 'payment_id' => $paymentId];
+      return self::create($params);
+    }
+  }
+
   public static function getUserCart($doNotCreate = FALSE) {
     $session = CRM_Core_Session::singleton();
     $cartId  = $session->get('cartcheckout_cart_id');
@@ -68,6 +75,13 @@ class CRM_Cartcheckout_BAO_Cart extends CRM_Cartcheckout_DAO_Cart {
       $session->set('cartcheckout_cart_id', $cart->id);
     }
     return $cart;
+  }
+
+  public static function getUserCartByContribution($paymentId, $isCompleted = 0) {
+    if (!empty($paymentId)) {
+      return self::getCart(['payment_id' => $paymentId, 'is_completed' => $isCompleted]);
+    }
+    return FALSE;
   }
 
   /**

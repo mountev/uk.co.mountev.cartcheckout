@@ -301,38 +301,39 @@ function cartcheckout_civicrm_postProcess($formName, &$form) {
   if ($formName == 'CRM_Contribute_Form_Contribution_Main') {
     $pageIds = Civi::settings()->get('cartcheckout_addtocart_page_id');
     if ($form->_id == Civi::settings()->get('cartcheckout_page_id')) {
-      // for checkout payment
+      // reset any cart session vars
+      $qfKey   = $form->_params['qfKey'];
+      $session = CRM_Core_Session::singleton();
+      $session->set("cartcheckout_{$qfKey}_membership_page_id", 0);
+      $session->set("cartcheckout_{$qfKey}_contribution_page_id", 0);
+
+      // for checkout payment - checkout items
       $cart = CRM_Cartcheckout_BAO_Cart::getUserCart();
       $cart->checkoutItems($form->_params);
     } else if (in_array($form->_id, $pageIds)) {
       $params = $form->_params;
       $qfKey  = $params['qfKey'];
       $session = CRM_Core_Session::singleton();
-      if (!empty($params['selectMembership'])) {
-        // for membership pages
-        // reset the flag first
-        // fixme: qfkey not known
-        $session->set("cartcheckout_{$qfKey}_membership_page_id", 0);
-        if (!empty($params['add_to_cartcheckout'])) {
+      $session->set("cartcheckout_{$qfKey}_membership_page_id", 0);
+      $session->set("cartcheckout_{$qfKey}_contribution_page_id", 0);
+      if (!empty($params['add_to_cartcheckout'])) {
+        if (!empty($form->get('useForMember'))) {
           $session->set("cartcheckout_{$params['qfKey']}_membership_page_id", $form->_id);
-        }
-      } else {
-        $session->set("cartcheckout_{$qfKey}_contribution_page_id", 0);
-        if (!empty($params['add_to_cartcheckout'])) {
+        } else {
           $session->set("cartcheckout_{$params['qfKey']}_contribution_page_id", $form->_id);
         }
       }
     }
   }
-  if ($formName == 'CRM_Contribute_Form_Contribution_Confirm') {
-    if ($form->_id == Civi::settings()->get('cartcheckout_page_id')) {
-      // completing the payment and sending receipt could be done in DB post hook.
-      // It's the linking the entity with new payment that needs to be done here
-      // so checkout payment doesn't get confused (otherwise it treats checkout payment
-      // as one of the linked payment - but only to one entity).
-      cartcheckout_civicrm_completeCheckout($form->_params['contributionID']);
-    }
-  }
+  //if ($formName == 'CRM_Contribute_Form_Contribution_Confirm') {
+  //  if ($form->_id == Civi::settings()->get('cartcheckout_page_id')) {
+  //    // completing the payment and sending receipt could be done in DB post hook.
+  //    // It's the linking the entity with new payment that needs to be done here
+  //    // so checkout payment doesn't get confused (otherwise it treats checkout payment
+  //    // as one of the linked payment - but only to one entity).
+  //    // cartcheckout_civicrm_completeCheckout($form->_params['contributionID']);
+  //  }
+  //}
 }
 
 function cartcheckout_civicrm_pre($op, $objectName, $objectId, &$objectRef) {
@@ -359,6 +360,13 @@ function cartcheckout_civicrm_pre($op, $objectName, $objectId, &$objectRef) {
         }
       }
     }
+  }
+  if ($op == 'edit' && $objectName == 'Contribution' && $objectId) {
+    \Civi::$statics[E::SHORT_NAME][$objectName]['pre'][$objectId] =
+      civicrm_api3('Contribution', 'getsingle', [
+        'return' => ["contribution_page_id", "contribution_status_id"],
+        'id' => $objectId
+      ]);
   }
   //if ($op == 'create' && $objectName == 'Membership') {
   //  $session = CRM_Core_Session::singleton();
@@ -431,25 +439,39 @@ function cartcheckout_civicrm_post($op, $objectName, $objectId, &$objectRef) {
     ) {
       $cart = CRM_Cartcheckout_BAO_Cart::getUserCart();
       $cart->addItem('civicrm_contribution', $objectId, $objectId);
+    } else if ($objectRef->contribution_page_id == Civi::settings()->get('cartcheckout_page_id')) {
+      $cart = CRM_Cartcheckout_BAO_Cart::getUserCart();
+      $cart->recordPaymentID($objectId);
     }
   }
 
   // online contribution first creates pending contribution,which then gets completed 
   // after creating lineitem and financial item. And therefore we use 'edit' as operation.
-  // if ($op == 'edit' && $objectName == 'Contribution' && $objectId) {
-  //   if (CRM_Core_Transaction::isActive()) {
-  //     CRM_Core_Transaction::addCallback(CRM_Core_Transaction::PHASE_POST_COMMIT, 'cartcheckout_civicrm_postCallback', [$op, $objectName, $objectId, $objectRef]);
-  //   }
-  //   else {
-  //     cartcheckout_civicrm_postCallback($op, $objectName, $objectId, $objectRef);
-  //   }
-  // }
+  if ($op == 'edit' && $objectName == 'Contribution' && $objectId) {
+    if (CRM_Core_Transaction::isActive()) {
+      CRM_Core_Transaction::addCallback(CRM_Core_Transaction::PHASE_POST_COMMIT, 'cartcheckout_civicrm_postCallback', [$op, $objectName, $objectId, $objectRef]);
+    }
+    else {
+      cartcheckout_civicrm_postCallback($op, $objectName, $objectId, $objectRef);
+    }
+  }
 }
 
-// function cartcheckout_civicrm_postCallback($op, $objectName, $objectId, $objectRef) {
-//   if ($op == 'edit' && $objectName == 'Contribution' && $objectId) {
-//   }
-// }
+function cartcheckout_civicrm_postCallback($op, $objectName, $objectId, $objectRef) {
+  if ($op == 'edit' && $objectName == 'Contribution' && $objectId && 
+    !empty(\Civi::$statics[E::SHORT_NAME][$objectName]['pre'][$objectId])
+  ) {
+    $contributionStatuses = CRM_Contribute_PseudoConstant::contributionStatus(NULL, 'name');
+    $entityPre = \Civi::$statics[E::SHORT_NAME][$objectName]['pre'][$objectId];
+    if (!empty($entityPre['contribution_page_id']) && 
+      ($entityPre['contribution_page_id'] == Civi::settings()->get('cartcheckout_page_id')) && 
+      ($entityPre['contribution_status_id'] == array_search('Pending', $contributionStatuses)) &&
+      ($objectRef->contribution_status_id == array_search('Completed', $contributionStatuses))
+    ) {
+      cartcheckout_civicrm_completeCheckout($objectId);
+    }
+  }
+}
 
 function cartcheckout_civicrm_buildAmount($pageType, &$form, &$amount) {
   if (CRM_Utils_System::getClassName($form) == 'CRM_Contribute_Form_Contribution_Main' && 
@@ -532,8 +554,8 @@ function cartcheckout_civicrm_completeCheckout($checkoutContributionId) {
     $checkoutContribution->contribution_page_id == Civi::settings()->get('cartcheckout_page_id') && 
     $checkoutContribution->contribution_status_id == array_search('Completed', $contributionStatuses)
   ) {
-    $cart = CRM_Cartcheckout_BAO_Cart::getUserCart();
-    if (empty($cart->is_completed)) { // not already completed
+    $cart = CRM_Cartcheckout_BAO_Cart::getUserCartByContribution($checkoutContributionId);
+    if ($cart && empty($cart->is_completed)) { // not already completed
       foreach ($cart->getCheckedOutItems() as $item) {
         $itemContribution = $item->getContribution();
         if ($itemContribution && 
