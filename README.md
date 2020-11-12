@@ -1,15 +1,13 @@
 # uk.co.mountev.cartcheckout
 
-![Screenshot](/images/screenshot.png)
-
-(*FIXME: In one or two paragraphs, describe what the extension does and why one would download it. *)
+Civi cart system that allows adding multiple entities (event, memberships, contributions) to the cart and checkout.
 
 The extension is licensed under [AGPL-3.0](LICENSE.txt).
 
 ## Requirements
 
 * PHP v5.6+
-* CiviCRM (*FIXME: Version number*)
+* CiviCRM v5.0+
 
 ## Installation (Web UI)
 
@@ -22,7 +20,7 @@ install it with the command-line tool [cv](https://github.com/civicrm/cv).
 
 ```bash
 cd <extension-dir>
-cv dl uk.co.mountev.cartcheckout@https://github.com/FIXME/uk.co.mountev.cartcheckout/archive/master.zip
+cv dl uk.co.mountev.cartcheckout@https://github.com/mountev/uk.co.mountev.cartcheckout/archive/master.zip
 ```
 
 ## Installation (CLI, Git)
@@ -31,14 +29,8 @@ Sysadmins and developers may clone the [Git](https://en.wikipedia.org/wiki/Git) 
 install it with the command-line tool [cv](https://github.com/civicrm/cv).
 
 ```bash
-git clone https://github.com/FIXME/uk.co.mountev.cartcheckout.git
+git clone https://github.com/mountev/uk.co.mountev.cartcheckout.git
 cv en cartcheckout
 ```
 
 ## Usage
-
-(* FIXME: Where would a new user navigate to get started? What changes would they see? *)
-
-## Known Issues
-
-(* FIXME *)
